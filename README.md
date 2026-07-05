@@ -185,6 +185,55 @@ A production-grade online grocery platform with a full observability stack built
 - **Endpoints**: `GET /api/healing/stagnation/state`, `POST /api/healing/stagnation/{restore,reset}` (admin).
 - **Dashboard card** on System Health — currently-removed pair list with per-pair mean |ΔSRI| and cooldown countdown, manual restore button, recent stagnation/restore events feed.
 
+### Runtime Stiffness Tensor (RST)
+*Models each service node as a structural element obeying Hooke's Law: ε = σ / K_eff. Provides a complementary resilience lens to the SRI: where SRI measures global spectral connectivity, RST localises the structural cause of fragility into 6 mechanically-interpretable components per service.*
+
+Each service is characterised by a **6-component stiffness tensor K**:
+| Component | Physical analogy | Derivation |
+|-----------|-----------------|-----------|
+| **K_A** | Availability stiffness | `1 − error_rate` — resistance to error-driven yielding |
+| **K_H** | Healing stiffness | Gain-matrix score — how well corrective actions take hold |
+| **K_S** | Saturation stiffness | `1 − saturation` — capacity headroom |
+| **K_D** | Dependency stiffness | Normalised graph degree — structural connectivity |
+| **K_F** | Fault stiffness | `1 / (1 + ln(L/L₀))` — resistance to latency-driven fault propagation |
+| **K_R** | Resilience stiffness | `exp(−d²)` where d² = eutectic distance from PhaseClassifier |
+
+**Effective stiffness** (weighted geometric mean):
+```
+K_eff = K_A^0.20 · K_H^0.15 · K_S^0.20 · K_D^0.15 · K_F^0.15 · K_R^0.15
+```
+
+**Stress σ** — operational stress derived from latency ratio, error rate and saturation.  
+**Strain ε = σ / K_eff** — how much the node deforms under that stress. High K_eff → low ε (node absorbs load without yielding).
+
+**Spectral view** — the stiffness-weighted graph Laplacian `L = D − W` (edge weight = harmonic mean of K_eff of endpoints) exposes:
+- **λ₂** (Fiedler value) — algebraic connectivity; → 0 means the stiffness mesh is near-disconnected.
+- **λmax** — spectral radius.
+- **RST-SRI** = λ₂ / λmax — a structural connectivity index in [0, 1].
+
+**Built-in scenarios** (applied via API or dashboard selector, expire after 60 s):
+- `normal` — baseline
+- `db_failure` — DB availability collapses; fault propagates to Backend and Cache
+- `cache_miss_storm` — Cache saturation; DB and Backend absorb the overflow
+- `healing_saturation` — healing actions are generating load; K_H drops system-wide
+- `api_latency_spike` — API latency spike; upstream Frontend and downstream stressed
+
+**Backend**:
+- `backend/obs/engines/rst_engine.py` — `RSTEngine` class; 5 s background tick; 240-sample history (~20 min)
+- `GET /api/rst/state` — current tensor snapshot (all nodes + spectral)
+- `GET /api/rst/history?limit=N` — rolling history for trend charts
+- `POST /api/rst/scenario` — inject a stress scenario `{name, overrides, duration_s}`
+- `DELETE /api/rst/scenario` — clear active scenario
+
+**Frontend (RST tab on Dashboard)**:
+- **Stiffness Tensor Composition** — colour-coded heatmap of K_A … K_R per service
+- **Stress & Strain Panel** — live bar chart + time-series σ/ε per service
+- **Structural Twin Graph** — service mesh with node size ∝ K_eff and edge thickness ∝ harmonic-mean K_eff
+- **Spectral Resilience Panel** — λ₂, λmax, RST-SRI gauge with trend AreaChart
+- **Physical Analogy View** — spring-damper diagram; spring amplitude ∝ 1/K_eff, damper fill ∝ ε
+
+**Tests**: `backend/tests/test_rst.py` — 28 unit tests covering all tensor components, K_eff formula, stress/strain physics, spectral math, scenario mechanics, and live API contract tests (skipped when `REACT_APP_BACKEND_URL` is unset).
+
 ### Economic Reliability — Unified-Model Phase 3 (iter 35)
 *Closes the resilience↔business-value loop: visualises **how many dollars of conversion the healing system is currently saving per minute** and the cost it pays to do so. Implements Eqs. 51–58 of Sunder's "Resilience Software Models" (SRI_Whitepaper §14.3).*
 
@@ -687,6 +736,10 @@ avoiding any new import-time coupling.
 | POST | /api/healing/stagnation/reset | Admin-only: clear the entire stagnation list |
 | GET  | /api/economic-reliability/state | Phase 3 / Unified-Model economic metrics — R_econ, R = W·R_S/C_T, cost decomposition (C_I/C_O/C_H/C_F), counterfactual heal-saved revenue/min, R_S |
 | GET  | /api/economic-reliability/trend?limit=60 | Per-tick economic trajectory for sparklines (W, C_T, R_econ, R, R_S, conversion) |
+| GET  | /api/rst/state | Current RST snapshot — per-node K_A…K_R, K_eff, σ, ε + spectral (λ₂, λmax, RST-SRI) |
+| GET  | /api/rst/history?limit=60 | Rolling RST history for trend charts |
+| POST | /api/rst/scenario | Inject a stress scenario `{name, overrides: {node: {K_A…}}, duration_s}` |
+| DELETE | /api/rst/scenario | Clear the active RST scenario |
 
 ### Admin (Slack/Discord webhooks)
 | Method | Endpoint | Description |
