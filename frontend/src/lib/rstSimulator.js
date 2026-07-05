@@ -35,69 +35,77 @@ const W = { A: 0.20, H: 0.15, S: 0.20, D: 0.15, F: 0.15, R: 0.15 };
 const LATENCY_BASELINE_MS = 50.0;
 const LATENCY_CEILING_MS  = 1500.0;
 
+// Pre-computed latency normalisation range (mirrors _LATENCY_NORM in rst_engine.py)
+const _LATENCY_NORM = Math.max(LATENCY_CEILING_MS / LATENCY_BASELINE_MS - 1.0, 1.0);
+
 /**
- * Compute a single-node tensor from raw metrics.
- *
- * @param {string} node
- * @param {{ latency?: number, error?: number, saturation?: number, traffic?: number }} metrics
- * @param {{ eutectic_d2?: number }} phaseData
- * @param {object} scenarioOverrides  — per-component scale factors { K_A, K_H, ... }
- * @returns {{ K_A, K_H, K_S, K_D, K_F, K_R, K_eff, sigma, epsilon }}
- */
+* Compute operational stress σ ∈ [0, 1] from raw signal inputs.
+* Shared by K_R fallback and σ computation to keep both in sync.
+*/
+function _stressFromSignals(latencyRatio, errorRate, saturation) {
+ return (
+   0.30 * Math.min(1.0, Math.max(0.0, (latencyRatio - 1.0) / _LATENCY_NORM)) +
+   0.35 * Math.min(1.0, errorRate) +
+   0.35 * Math.min(1.0, saturation)
+ );
+}
+
+/**
+* Compute a single-node tensor from raw metrics.
+*
+* @param {string} node
+* @param {{ latency?: number, error?: number, saturation?: number, traffic?: number }} metrics
+* @param {{ eutectic_d2?: number }} phaseData
+* @param {object} scenarioOverrides  — per-component scale factors { K_A, K_H, ... }
+* @returns {{ K_A, K_H, K_S, K_D, K_F, K_R, K_eff, sigma, epsilon }}
+*/
 export function computeNodeTensor(node, metrics = {}, phaseData = {}, scenarioOverrides = {}) {
-  const latency    = metrics.latency    ?? LATENCY_BASELINE_MS;
-  const errorRate  = metrics.error      ?? 0;
-  const saturation = metrics.saturation ?? 0;
+ const latency    = metrics.latency    ?? LATENCY_BASELINE_MS;
+ const errorRate  = metrics.error      ?? 0;
+ const saturation = metrics.saturation ?? 0;
 
-  const latencyRatio = latency / LATENCY_BASELINE_MS;
+ const latencyRatio = latency / LATENCY_BASELINE_MS;
 
-  let K_A = Math.max(0.01, 1.0 - errorRate);
-  let K_S = Math.max(0.01, 1.0 - saturation);
-  let K_D = 0.5 + 0.5 * (NODE_DEGREE[node] / MAX_DEGREE);
-  let K_H = 0.5; // default when no gain matrix
-  let K_F = Math.max(0.01, 1.0 / (1.0 + Math.log(Math.max(latencyRatio, 1.0))));
+ let K_A = Math.max(0.01, 1.0 - errorRate);
+ let K_S = Math.max(0.01, 1.0 - saturation);
+ let K_D = 0.5 + 0.5 * (NODE_DEGREE[node] / MAX_DEGREE);
+ let K_H = 0.5; // default when no gain matrix
+ let K_F = Math.max(0.01, 1.0 / (1.0 + Math.log(Math.max(latencyRatio, 1.0))));
 
-  let K_R;
-  if (phaseData.eutectic_d2 != null) {
-    K_R = Math.exp(-phaseData.eutectic_d2);
-  } else {
-    const stressProxy =
-      0.30 * Math.min(1.0, Math.max(0.0, (latencyRatio - 1.0) / (LATENCY_CEILING_MS / LATENCY_BASELINE_MS - 1.0))) +
-      0.35 * Math.min(1.0, errorRate) +
-      0.35 * Math.min(1.0, saturation);
-    K_R = Math.max(0.01, Math.exp(-3.0 * Math.max(0.0, stressProxy)));
-  }
+ let K_R;
+ if (phaseData.eutectic_d2 != null) {
+   K_R = Math.exp(-phaseData.eutectic_d2);
+ } else {
+   const stressProxy = _stressFromSignals(latencyRatio, errorRate, saturation);
+   K_R = Math.max(0.01, Math.exp(-3.0 * Math.max(0.0, stressProxy)));
+ }
 
-  // Apply scenario overrides
-  K_A *= scenarioOverrides.K_A ?? 1.0;
-  K_H *= scenarioOverrides.K_H ?? 1.0;
-  K_S *= scenarioOverrides.K_S ?? 1.0;
-  K_D *= scenarioOverrides.K_D ?? 1.0;
-  K_F *= scenarioOverrides.K_F ?? 1.0;
-  K_R *= scenarioOverrides.K_R ?? 1.0;
+ // Apply scenario overrides
+ K_A *= scenarioOverrides.K_A ?? 1.0;
+ K_H *= scenarioOverrides.K_H ?? 1.0;
+ K_S *= scenarioOverrides.K_S ?? 1.0;
+ K_D *= scenarioOverrides.K_D ?? 1.0;
+ K_F *= scenarioOverrides.K_F ?? 1.0;
+ K_R *= scenarioOverrides.K_R ?? 1.0;
 
-  // Clamp
-  const clamp = v => Math.min(1.0, Math.max(0.01, v));
-  K_A = clamp(K_A); K_H = clamp(K_H); K_S = clamp(K_S);
-  K_D = clamp(K_D); K_F = clamp(K_F); K_R = clamp(K_R);
+ // Clamp
+ const clamp = v => Math.min(1.0, Math.max(0.01, v));
+ K_A = clamp(K_A); K_H = clamp(K_H); K_S = clamp(K_S);
+ K_D = clamp(K_D); K_F = clamp(K_F); K_R = clamp(K_R);
 
-  const K_eff = Math.max(
-    0.001,
-    Math.pow(K_A, W.A) *
-    Math.pow(K_H, W.H) *
-    Math.pow(K_S, W.S) *
-    Math.pow(K_D, W.D) *
-    Math.pow(K_F, W.F) *
-    Math.pow(K_R, W.R)
-  );
+ const K_eff = Math.max(
+   0.001,
+   Math.pow(K_A, W.A) *
+   Math.pow(K_H, W.H) *
+   Math.pow(K_S, W.S) *
+   Math.pow(K_D, W.D) *
+   Math.pow(K_F, W.F) *
+   Math.pow(K_R, W.R)
+ );
 
-  const sigma = (
-    0.30 * Math.min(1.0, Math.max(0.0, (latencyRatio - 1.0) / (LATENCY_CEILING_MS / LATENCY_BASELINE_MS - 1.0))) +
-    0.35 * Math.min(1.0, errorRate) +
-    0.35 * Math.min(1.0, saturation)
-  );
+ const sigma = _stressFromSignals(latencyRatio, errorRate, saturation);
 
-  const epsilon = Math.min(5.0, Math.max(0.0, sigma / K_eff));
+ const epsilon = Math.min(5.0, Math.max(0.0, sigma / K_eff));
 
   return {
     K_A:     +K_A.toFixed(4),

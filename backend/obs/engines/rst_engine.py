@@ -87,6 +87,24 @@ LATENCY_BASELINE_MS  = float(os.environ.get("PHASE_L0",      "50.0"))
 LATENCY_CEILING_MS   = float(os.environ.get("PHASE_L_CEIL",  "1500.0"))
 MEM_CAP              = float(os.environ.get("PHASE_M_CAP",   "0.80"))
 
+# Pre-computed normalisation range for latency contribution to stress σ and K_R fallback.
+# Avoids repeating the expression (LATENCY_CEILING_MS / LATENCY_BASELINE_MS - 1.0) in
+# multiple places.
+_LATENCY_NORM = max(LATENCY_CEILING_MS / LATENCY_BASELINE_MS - 1.0, 1.0)
+
+
+def _stress_from_signals(latency_ratio: float, error_rate: float, saturation: float) -> float:
+    """Compute operational stress σ ∈ [0, 1] from golden-signal inputs.
+
+    Shared by both the K_R fallback (when eutectic_d2 is unavailable)
+    and the per-node σ calculation so both stay in sync.
+    """
+    return (
+        0.30 * min(1.0, max(0.0, (latency_ratio - 1.0) / _LATENCY_NORM)) +
+        0.35 * min(1.0, error_rate) +
+        0.35 * min(1.0, saturation)
+)
+
 
 # ============================================================
 #  Forward-declared singletons — bound by obs_server
@@ -278,10 +296,8 @@ class RSTEngine:
         if d2 is not None:
             k_r = math.exp(-float(d2))
         else:
-            # Fallback: derive from SRI proxy (error + latency + saturation)
-            stress_proxy = 0.3 * (latency_ratio - 1.0) / max(LATENCY_CEILING_MS / LATENCY_BASELINE_MS - 1.0, 1.0) \
-                         + 0.35 * error_rate \
-                         + 0.35 * saturation
+            # Fallback: derive K_R from stress proxy using the shared helper
+            stress_proxy = _stress_from_signals(latency_ratio, error_rate, saturation)
             k_r = max(0.01, math.exp(-3.0 * max(0.0, stress_proxy)))
 
         # ── Apply scenario overrides ──────────────────────────────────
@@ -315,11 +331,7 @@ class RSTEngine:
 
         # ── Stress σ: operational stress on this node ─────────────────
         # Combines latency pressure, error stress, saturation stress
-        sigma = (
-            0.30 * min(1.0, max(0.0, (latency_ratio - 1.0) / (LATENCY_CEILING_MS / LATENCY_BASELINE_MS - 1.0))) +
-            0.35 * min(1.0, error_rate) +
-            0.35 * min(1.0, saturation)
-        )
+        sigma = _stress_from_signals(latency_ratio, error_rate, saturation)
 
         # ── Strain ε: node deformation under σ ────────────────────────
         # Hooke's law analogy: ε = σ / K_eff
