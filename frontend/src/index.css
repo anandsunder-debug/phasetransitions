@@ -1,0 +1,163 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Manrope:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* E-Commerce Light Theme - Organic & Earthy */
+    --background: 36 20% 97%;
+    --foreground: 0 0% 10%;
+    --surface: 0 0% 100%;
+    --primary: 118 38% 25%;
+    --primary-hover: 118 45% 18%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 18 72% 62%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 36 16% 91%;
+    --muted-foreground: 36 6% 42%;
+    --border: 36 12% 84%;
+    --input: 36 12% 84%;
+    --ring: 118 38% 25%;
+    --radius: 0.5rem;
+    
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 10%;
+    --accent: 36 16% 91%;
+    --accent-foreground: 0 0% 10%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --chart-1: 118 38% 25%;
+    --chart-2: 18 72% 62%;
+    --chart-3: 36 50% 50%;
+    --chart-4: 160 60% 45%;
+    --chart-5: 280 65% 60%;
+  }
+  
+  .dark {
+    /* Dashboard Dark Theme - Swiss High-Contrast */
+    --background: 0 0% 4%;
+    --foreground: 0 0% 96%;
+    --surface: 0 0% 7%;
+    --primary: 0 0% 100%;
+    --primary-foreground: 0 0% 4%;
+    --accent-healthy: 155 100% 50%;
+    --accent-warning: 45 100% 50%;
+    --accent-error: 4 100% 59%;
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 55%;
+    --border: 0 0% 15%;
+    --input: 0 0% 15%;
+    --ring: 0 0% 100%;
+    
+    --card: 0 0% 7%;
+    --card-foreground: 0 0% 96%;
+    --popover: 0 0% 7%;
+    --popover-foreground: 0 0% 96%;
+    --accent: 0 0% 12%;
+    --accent-foreground: 0 0% 96%;
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 0 0% 96%;
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 0 0% 96%;
+    
+    --chart-1: 155 100% 50%;
+    --chart-2: 45 100% 50%;
+    --chart-3: 4 100% 59%;
+    --chart-4: 200 80% 60%;
+    --chart-5: 280 80% 60%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Manrope', sans-serif;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Outfit', sans-serif;
+  }
+  
+  code, pre, .mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+@layer utilities {
+  .glass-header {
+    @apply backdrop-blur-xl bg-[#F9F8F6]/70 border-b border-white/40;
+  }
+  
+  .dark .glass-header {
+    @apply backdrop-blur-xl bg-[#0A0A0A]/80 border-b border-[#262626];
+  }
+  
+  .grid-borders {
+    @apply border border-[#262626];
+  }
+  
+  .text-healthy {
+    color: #00FF9D;
+  }
+  
+  .text-warning {
+    color: #FFCC00;
+  }
+  
+  .text-error {
+    color: #FF3B30;
+  }
+  
+  .bg-healthy {
+    background-color: #00FF9D;
+  }
+  
+  .bg-warning {
+    background-color: #FFCC00;
+  }
+  
+  .bg-error {
+    background-color: #FF3B30;
+  }
+}
+
+@layer base {
+  [data-debug-wrapper="true"] {
+    display: contents !important;
+  }
+
+  [data-debug-wrapper="true"] > * {
+    margin-left: inherit;
+    margin-right: inherit;
+    margin-top: inherit;
+    margin-bottom: inherit;
+    padding-left: inherit;
+    padding-right: inherit;
+    padding-top: inherit;
+    padding-bottom: inherit;
+    column-gap: inherit;
+    row-gap: inherit;
+    gap: inherit;
+    border-left-width: inherit;
+    border-right-width: inherit;
+    border-top-width: inherit;
+    border-bottom-width: inherit;
+    border-left-style: inherit;
+    border-right-style: inherit;
+    border-top-style: inherit;
+    border-bottom-style: inherit;
+    border-left-color: inherit;
+    border-right-color: inherit;
+    border-top-color: inherit;
+    border-bottom-color: inherit;
+  }
+}

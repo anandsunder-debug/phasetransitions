@@ -1,0 +1,31 @@
+{
+  "summary": "Iteration 11 backend testing: validated RCA-based auto-healing with SRI-dip detection. All 19/19 pytest tests passed against the public backend URL. /api/healing overview returns mode='auto_healing' with sri_dip (healing_needed flag, dip_magnitude, high_watermark), rca (root_cause_node, recommended_action, multi_ca_targets), fea (yield_nodes with von_mises_stress + corrective_action per node). /api/healing/status reports enabled=true by default, mode='auto_healing', and a populated sri_dip_detection block (high_watermark, last_sri, dip_threshold=0.03). /api/healing/history records carry triggered_by='rca_alert' (auto-healing path, not manual), rca_root_cause (e.g. 'Cache'), and dip.dip_magnitude. All action cooldowns are within the 30-90s range. /api/healing/rca, /api/healing/fea, /api/healing/trend all return the required shapes. /api/health returns 200.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/healing/history", "issue": "batch_id only appears when >1 yield node is present. During the 15s observation window only 1 yield node was stressed, so multi_ca_batch was not exercised end-to-end. Multi-CA code path was verified structurally (multi_ca_targets in /api/healing/rca and recommended_cas/multi_ca_recommended in /api/healing/fea) but not via a live batch record."}
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_iteration11_autoheal.py",
+    "/app/test_reports/pytest/iteration11_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py is 2575 lines; still needs modularisation (HealingEngine, FEA math, MetricsAggregator, SRI interpolator into separate modules).",
+    "perform_fea() is invoked 3-5x per /api/healing/status response (directly and via perform_rca which re-runs FEA). Cache FEA per-request to avoid redundant O(n^3) pinv computations.",
+    "HealingEngine.sri_high_watermark decays toward current SRI when no new high is seen, but the decay factor (0.995/0.005) is a magic number - extract to a named constant for tunability.",
+    "Multi-CA batch_id is set on record['batch_id'] only when len(yield_nodes) > 1. The summary record ('type': 'multi_ca_batch') is also only emitted in that path. Consider emitting a single-action 'batch' marker too, so history consumers can always filter by batch.",
+    "on_alert() triggers RCA+FEA for ALL alert categories now. If alerts fire rapidly this can create cooldown thrash - consider a per-category debounce in addition to per-action cooldown.",
+    "auto_heal_cycle is registered at startup via asyncio.create_task(auto_healing_loop()) but there's no graceful-shutdown cancellation; on hot-reload this could leak tasks (acceptable in dev, flag for prod)."
+  ],
+  "updated_files": ["/app/backend/tests/test_iteration11_autoheal.py (new)"],
+  "success_rate": {"backend": "100%", "frontend": "not tested"},
+  "test_credentials": "admin@freshcart.com / admin123 (fixture only; most healing endpoints are public/read-only so login not required).",
+  "seed_data_creation": "25 GET /api/products requests + 15s sleep to let the 10s auto-heal loop fire at least once and populate SRIInterpolator.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Run `pytest /app/backend/tests/test_iteration11_autoheal.py -v` for regression. Autouse fixture generates traffic and waits 15s so history has auto-trigger records. To force multi-CA batch_id verification, inject elevated load on multiple nodes (latency+saturation on Backend AND Cache simultaneously) so len(yield_nodes) > 1 -- current traffic typically stresses just one node. iteration_10 tests also still pass and cover the FEA/trend math in detail.",
+  "rca of the issue": "N/A - no bugs. All iteration-11 requirements (mode=auto_healing, enabled-by-default, sri_dip detection, rca_root_cause + dip in history records, reduced 30-90s cooldowns, overview endpoint) are met. Only observation is that live multi-CA batch_id records require sustained multi-node stress to appear."
+}

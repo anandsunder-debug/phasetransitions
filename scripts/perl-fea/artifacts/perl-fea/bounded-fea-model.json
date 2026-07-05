@@ -1,0 +1,154 @@
+{
+   "bounds" : {
+      "composite_reliability" : [
+         0,
+         1
+      ],
+      "edge_stiffness" : [
+         0.05,
+         1
+      ],
+      "functional_reliability" : [
+         0,
+         1
+      ],
+      "node_reliability" : [
+         0,
+         1
+      ],
+      "nonfunctional_reliability" : [
+         0,
+         1
+      ]
+   },
+   "fea_terms" : {
+      "edge_terms" : [
+         {
+            "source" : "Frontend",
+            "stiffness" : 0.721848,
+            "strain_term" : 1.6e-05,
+            "target" : "API"
+         },
+         {
+            "source" : "API",
+            "stiffness" : 0.763479,
+            "strain_term" : 0.004713,
+            "target" : "Cache"
+         },
+         {
+            "source" : "API",
+            "stiffness" : 0.703236,
+            "strain_term" : 0.001236,
+            "target" : "DB"
+         },
+         {
+            "source" : "API",
+            "stiffness" : 0.663723,
+            "strain_term" : 0.009709,
+            "target" : "Queue"
+         },
+         {
+            "source" : "Cache",
+            "stiffness" : 0.742518,
+            "strain_term" : 0.010779,
+            "target" : "DB"
+         },
+         {
+            "source" : "Queue",
+            "stiffness" : 0.506518,
+            "strain_term" : 0.018958,
+            "target" : "Backend"
+         },
+         {
+            "source" : "Backend",
+            "stiffness" : 0.54603,
+            "strain_term" : 0.040543,
+            "target" : "DB"
+         },
+         {
+            "source" : "Backend",
+            "stiffness" : 0.606274,
+            "strain_term" : 0.093627,
+            "target" : "Cache"
+         }
+      ],
+      "energy" : 0.179581,
+      "energy_bound" : 5.253628,
+      "fea_reliability" : 0.965818
+   },
+   "generated_at" : "Sat Jul  4 12:19:27 2026",
+   "inputs" : {
+      "edge_count" : 8,
+      "node_count" : 6,
+      "reliability_endpoint_label" : "excellent",
+      "reliability_endpoint_score" : 0.961
+   },
+   "node_scores" : {
+      "API" : {
+         "functional" : 0.75,
+         "nonfunctional" : 0.692659,
+         "observed" : {
+            "error_rate" : 0,
+            "latency_ms" : 26.216,
+            "saturation" : 1
+         },
+         "overall" : 0.724197
+      },
+      "Backend" : {
+         "functional" : 0.745066,
+         "nonfunctional" : 0,
+         "observed" : {
+            "error_rate" : 0.006579,
+            "latency_ms" : 4662.34,
+            "saturation" : 1
+         },
+         "overall" : 0.409786
+      },
+      "Cache" : {
+         "functional" : 0.972973,
+         "nonfunctional" : 0.594726,
+         "observed" : {
+            "error_rate" : 0,
+            "latency_ms" : 1331.578,
+            "saturation" : 0.108108
+         },
+         "overall" : 0.802762
+      },
+      "DB" : {
+         "functional" : 0.9975,
+         "nonfunctional" : 0.297,
+         "observed" : {
+            "error_rate" : 0,
+            "latency_ms" : 3626.905,
+            "saturation" : 0.01
+         },
+         "overall" : 0.682275
+      },
+      "Frontend" : {
+         "functional" : 0.75,
+         "nonfunctional" : 0.682219,
+         "observed" : {
+            "error_rate" : 0,
+            "latency_ms" : 63.503,
+            "saturation" : 1
+         },
+         "overall" : 0.719499
+      },
+      "Queue" : {
+         "functional" : 0.925,
+         "nonfunctional" : 0.21,
+         "observed" : {
+            "error_rate" : 0,
+            "latency_ms" : 2554.42,
+            "saturation" : 0.3
+         },
+         "overall" : 0.60325
+      }
+   },
+   "system_reliability" : {
+      "composite" : 0.667868,
+      "functional" : 0.856757,
+      "label" : "critical",
+      "nonfunctional" : 0.412767
+   }
+}

@@ -1,0 +1,3277 @@
+{
+   "base_url" : "http://localhost:8001",
+   "generated_at" : "Sat Jul  4 12:19:26 2026",
+   "healing_status" : {
+      "actions" : {
+         "api_error_suppression" : {
+            "action_id" : "api_error_suppression",
+            "can_execute" : true,
+            "cooldown" : 40,
+            "description" : "Suppress retry storms and error amplification on API layer",
+            "effect_description" : "Clears error backlog, resets failed request counters",
+            "execution_count" : 4,
+            "last_executed" : "2026-07-04T12:09:57.990599+00:00",
+            "name" : "API Error Suppression",
+            "sri_impact" : 0.1,
+            "target_node" : "API",
+            "trigger_condition" : "API error rate > 5% AND rate_limit is exhausted"
+         },
+         "cache_flush" : {
+            "action_id" : "cache_flush",
+            "can_execute" : true,
+            "cooldown" : 45,
+            "description" : "Purge stale cache entries to reduce cache latency and errors",
+            "effect_description" : "Reduces Cache node latency by ~40%, clears stale data",
+            "execution_count" : 46,
+            "last_executed" : "2026-07-04T12:09:56.106153+00:00",
+            "name" : "Cache Flush",
+            "sri_impact" : 0.08,
+            "target_node" : "Cache",
+            "trigger_condition" : "Cache latency > 60ms OR Cache error rate > 3%"
+         },
+         "circuit_breaker" : {
+            "action_id" : "circuit_breaker",
+            "can_execute" : true,
+            "cooldown" : 60,
+            "description" : "Open circuit breaker to isolate failing backend services",
+            "effect_description" : "Isolates failing services, prevents error propagation across nodes",
+            "execution_count" : 32,
+            "last_executed" : "2026-07-04T12:09:57.340144+00:00",
+            "name" : "Circuit Breaker",
+            "sri_impact" : 0.15,
+            "target_node" : "Backend",
+            "trigger_condition" : "Backend error rate > 8% OR Backend latency > 150ms"
+         },
+         "connection_pool_reset" : {
+            "action_id" : "connection_pool_reset",
+            "can_execute" : true,
+            "cooldown" : 90,
+            "description" : "Reset and resize database connection pool",
+            "effect_description" : "Frees stale DB connections, reduces latency by ~35%",
+            "execution_count" : 24,
+            "last_executed" : "2026-07-04T12:09:56.761466+00:00",
+            "name" : "Connection Pool Reset",
+            "sri_impact" : 0.1,
+            "target_node" : "DB",
+            "trigger_condition" : "DB saturation > 50% OR DB latency > 100ms"
+         },
+         "queue_drain" : {
+            "action_id" : "queue_drain",
+            "can_execute" : false,
+            "cooldown" : 45,
+            "description" : "Drain backlogged queue messages and reset consumers",
+            "effect_description" : "Clears message backlog, restores processing throughput",
+            "execution_count" : 121,
+            "last_executed" : "2026-07-04T12:18:56.054175+00:00",
+            "name" : "Queue Drain",
+            "sri_impact" : 0.07,
+            "target_node" : "Queue",
+            "trigger_condition" : "Queue saturation > 60% OR Queue latency > 70ms"
+         },
+         "rate_limit" : {
+            "action_id" : "rate_limit",
+            "can_execute" : true,
+            "cooldown" : 30,
+            "description" : "Activate adaptive rate limiting to reduce API overload",
+            "effect_description" : "Reduces API saturation by ~30%, prevents cascading failures",
+            "execution_count" : 68,
+            "last_executed" : "2026-07-04T12:14:06.303781+00:00",
+            "name" : "Rate Limiter",
+            "sri_impact" : 0.12,
+            "target_node" : "API",
+            "trigger_condition" : "API saturation > 60% OR API error rate > 7%"
+         },
+         "scale_in_backend" : {
+            "action_id" : "scale_in_backend",
+            "can_execute" : true,
+            "cooldown" : 120,
+            "description" : "Drop a Backend replica when over-provisioned",
+            "effect_description" : "Returns compute capacity; M/M_cap rises toward Ψ_c target 0.55",
+            "execution_count" : 3,
+            "last_executed" : "2026-07-04T10:09:41.172029+00:00",
+            "name" : "Scale In Backend",
+            "sri_impact" : -0.02,
+            "target_node" : "Backend",
+            "trigger_condition" : "Backend boosted AND saturation < 25% AND latency < 50ms — eutectic-pulled"
+         },
+         "scale_in_cache_node" : {
+            "action_id" : "scale_in_cache_node",
+            "can_execute" : true,
+            "cooldown" : 120,
+            "description" : "Decommission a Cache node when over-provisioned",
+            "effect_description" : "Returns cache capacity; M/M_cap rises toward Ψ_c target 0.55",
+            "execution_count" : 11,
+            "last_executed" : "2026-07-04T10:25:01.201747+00:00",
+            "name" : "Scale In Cache Node",
+            "sri_impact" : -0.02,
+            "target_node" : "Cache",
+            "trigger_condition" : "Cache boosted AND saturation < 25% — eutectic-pulled"
+         },
+         "scale_in_db_read_replica" : {
+            "action_id" : "scale_in_db_read_replica",
+            "can_execute" : true,
+            "cooldown" : 120,
+            "description" : "Drop a DB read replica when over-provisioned",
+            "effect_description" : "Returns DB capacity; M/M_cap rises toward Ψ_c target 0.55",
+            "execution_count" : 4,
+            "last_executed" : "2026-07-04T10:25:03.758552+00:00",
+            "name" : "Scale In DB Read Replica",
+            "sri_impact" : -0.02,
+            "target_node" : "DB",
+            "trigger_condition" : "DB boosted AND saturation < 25% AND latency < 50ms — eutectic-pulled"
+         },
+         "scale_in_frontend" : {
+            "action_id" : "scale_in_frontend",
+            "can_execute" : true,
+            "cooldown" : 120,
+            "description" : "Drop a Frontend replica when over-provisioned (M/M_cap << 0.55)",
+            "effect_description" : "Returns capacity to the pool; M/M_cap and L/L₀ rise toward Ψ_c targets (0.55, 1.5)",
+            "execution_count" : 4,
+            "last_executed" : "2026-07-04T10:24:59.369105+00:00",
+            "name" : "Scale In Frontend",
+            "sri_impact" : -0.02,
+            "target_node" : "Frontend",
+            "trigger_condition" : "Frontend boosted AND saturation < 25% AND latency < 50ms — eutectic-pulled"
+         },
+         "scale_out_backend" : {
+            "action_id" : "scale_out_backend",
+            "can_execute" : true,
+            "cooldown" : 200,
+            "description" : "Add a Backend worker replica to spread compute + IO load",
+            "effect_description" : "Adds compute capacity; reduces Backend latency ~40% and saturation ~55%",
+            "execution_count" : 3,
+            "last_executed" : "2026-07-04T09:50:22.423539+00:00",
+            "name" : "Scale Out Backend",
+            "sri_impact" : 0.13,
+            "target_node" : "Backend",
+            "trigger_condition" : "Backend saturation > 70% OR Backend latency > 150ms"
+         },
+         "scale_out_cache_node" : {
+            "action_id" : "scale_out_cache_node",
+            "can_execute" : false,
+            "cooldown" : 150,
+            "description" : "Add a Cache node and rebalance keyspace (sharding)",
+            "effect_description" : "Adds cache capacity; reduces Cache latency ~50% and saturation ~65%",
+            "execution_count" : 36,
+            "last_executed" : "2026-07-04T12:19:01.208659+00:00",
+            "name" : "Scale Out Cache Node",
+            "sri_impact" : 0.11,
+            "target_node" : "Cache",
+            "trigger_condition" : "Cache saturation > 70% OR Cache latency > 90ms"
+         },
+         "scale_out_db_read_replica" : {
+            "action_id" : "scale_out_db_read_replica",
+            "can_execute" : false,
+            "cooldown" : 240,
+            "description" : "Provision an additional DB read replica and route reads through it",
+            "effect_description" : "Splits read load across replicas; reduces DB latency ~40% and saturation ~55%",
+            "execution_count" : 4,
+            "last_executed" : "2026-07-04T12:16:35.764658+00:00",
+            "name" : "Scale Out DB Read Replica",
+            "sri_impact" : 0.14,
+            "target_node" : "DB",
+            "trigger_condition" : "DB latency > 120ms AND DB saturation > 65%"
+         },
+         "scale_out_frontend" : {
+            "action_id" : "scale_out_frontend",
+            "can_execute" : true,
+            "cooldown" : 180,
+            "description" : "Add a Frontend replica to absorb client-facing load",
+            "effect_description" : "Adds compute capacity; reduces Frontend latency ~45% and saturation ~60%",
+            "execution_count" : 3,
+            "last_executed" : "2026-07-04T09:47:57.245228+00:00",
+            "name" : "Scale Out Frontend",
+            "sri_impact" : 0.13,
+            "target_node" : "Frontend",
+            "trigger_condition" : "Frontend latency > 200ms OR Frontend saturation > 70%"
+         }
+      },
+      "active_healers" : [
+         {
+            "action_id" : "scale_out_db_read_replica",
+            "expires" : "2026-07-04T12:20:35.764658+00:00"
+         },
+         {
+            "action_id" : "queue_drain",
+            "expires" : "2026-07-04T12:19:41.054175+00:00"
+         },
+         {
+            "action_id" : "scale_out_cache_node",
+            "expires" : "2026-07-04T12:21:31.208659+00:00"
+         }
+      ],
+      "adaptation" : {
+         "effective_actions" : [
+            {
+               "action_id" : "queue_drain",
+               "avg_sri_delta" : -0.004285,
+               "executions_tracked" : 10,
+               "is_exhausted" : false,
+               "recent_deltas" : [
+                  -0.006583,
+                  -0.007893,
+                  -0.010043,
+                  0.006033,
+                  -0.002939
+               ]
+            },
+            {
+               "action_id" : "scale_out_cache_node",
+               "avg_sri_delta" : 0.006287,
+               "executions_tracked" : 10,
+               "is_exhausted" : false,
+               "recent_deltas" : [
+                  0.003088,
+                  0.007036,
+                  0.012927,
+                  0.003117,
+                  0.005269
+               ]
+            },
+            {
+               "action_id" : "scale_out_db_read_replica",
+               "avg_sri_delta" : -0.000981,
+               "executions_tracked" : 4,
+               "is_exhausted" : false,
+               "recent_deltas" : [
+                  -0.000825,
+                  0.002926,
+                  -0.005719,
+                  -0.000306
+               ]
+            }
+         ],
+         "effectiveness_window" : 5,
+         "exhausted_actions" : [
+            {
+               "action_id" : "cache_flush",
+               "avg_sri_delta" : -3.7e-05,
+               "executions_tracked" : 10,
+               "is_exhausted" : true,
+               "recent_deltas" : [
+                  1.1e-05,
+                  1.3e-05,
+                  -1.7e-05,
+                  -0.000149,
+                  -4.1e-05
+               ]
+            },
+            {
+               "action_id" : "rate_limit",
+               "avg_sri_delta" : 0.000138,
+               "executions_tracked" : 10,
+               "is_exhausted" : true,
+               "recent_deltas" : [
+                  8e-06,
+                  0.000135,
+                  -5e-06,
+                  0.000501,
+                  5e-05
+               ]
+            },
+            {
+               "action_id" : "circuit_breaker",
+               "avg_sri_delta" : 9e-05,
+               "executions_tracked" : 10,
+               "is_exhausted" : true,
+               "recent_deltas" : [
+                  3e-06,
+                  8e-06,
+                  0.000157,
+                  0.000245,
+                  3.9e-05
+               ]
+            },
+            {
+               "action_id" : "connection_pool_reset",
+               "avg_sri_delta" : -0.000365,
+               "executions_tracked" : 10,
+               "is_exhausted" : true,
+               "recent_deltas" : [
+                  -0.000703,
+                  -0.000826,
+                  -0.000219,
+                  0.000439,
+                  -0.000514
+               ]
+            },
+            {
+               "action_id" : "api_error_suppression",
+               "avg_sri_delta" : 0.000124,
+               "executions_tracked" : 4,
+               "is_exhausted" : true,
+               "recent_deltas" : [
+                  3.4e-05,
+                  1.8e-05,
+                  2.5e-05,
+                  0.000418
+               ]
+            },
+            {
+               "action_id" : "scale_out_frontend",
+               "avg_sri_delta" : -0.000206,
+               "executions_tracked" : 3,
+               "is_exhausted" : true,
+               "recent_deltas" : [
+                  -0.00063,
+                  0.000139,
+                  -0.000128
+               ]
+            },
+            {
+               "action_id" : "scale_out_backend",
+               "avg_sri_delta" : 0.000158,
+               "executions_tracked" : 3,
+               "is_exhausted" : true,
+               "recent_deltas" : [
+                  8.4e-05,
+                  0.000359,
+                  3.2e-05
+               ]
+            },
+            {
+               "action_id" : "scale_in_frontend",
+               "avg_sri_delta" : 0.000183,
+               "executions_tracked" : 4,
+               "is_exhausted" : true,
+               "recent_deltas" : [
+                  0.000732,
+                  0,
+                  0,
+                  0
+               ]
+            },
+            {
+               "action_id" : "scale_in_cache_node",
+               "avg_sri_delta" : -0.000327,
+               "executions_tracked" : 10,
+               "is_exhausted" : true,
+               "recent_deltas" : [
+                  -0.00054,
+                  0,
+                  0,
+                  -0.000194,
+                  -0.000899
+               ]
+            },
+            {
+               "action_id" : "scale_in_db_read_replica",
+               "avg_sri_delta" : 0,
+               "executions_tracked" : 4,
+               "is_exhausted" : true,
+               "recent_deltas" : [
+                  0,
+                  0,
+                  0,
+                  0
+               ]
+            },
+            {
+               "action_id" : "scale_in_backend",
+               "avg_sri_delta" : -5e-06,
+               "executions_tracked" : 3,
+               "is_exhausted" : true,
+               "recent_deltas" : [
+                  -1.6e-05,
+                  0,
+                  0
+               ]
+            }
+         ],
+         "stagnation_threshold" : 0.001,
+         "total_effective" : 3,
+         "total_exhausted" : 11
+      },
+      "alert_driven" : true,
+      "capacity_boosts" : {
+         "Cache" : {
+            "expires_in_s" : 94.3,
+            "multiplier" : 1.85
+         }
+      },
+      "correction_history" : [
+         {
+            "action_id" : "queue_drain",
+            "corrections" : {
+               "errors" : {
+                  "after" : 0.9742,
+                  "before" : 0.9806,
+                  "correction_factor" : 0,
+                  "delta" : -0.0064
+               },
+               "latency" : {
+                  "after" : 0.833,
+                  "before" : 0.8323,
+                  "correction_factor" : 0.0042,
+                  "delta" : 0.0007
+               },
+               "saturation" : {
+                  "after" : 0.2258,
+                  "before" : 0.1891,
+                  "correction_factor" : 0.0453,
+                  "delta" : 0.0367
+               },
+               "traffic" : {
+                  "after" : 1,
+                  "before" : 1,
+                  "correction_factor" : 0,
+                  "delta" : 0
+               }
+            },
+            "sri_after" : 0.9988,
+            "sri_before" : 0.999,
+            "timestamp" : "2026-07-04T12:14:10.324046+00:00"
+         },
+         {
+            "action_id" : "queue_drain",
+            "corrections" : {
+               "errors" : {
+                  "after" : 0.993,
+                  "before" : 0.993,
+                  "correction_factor" : 0,
+                  "delta" : 0
+               },
+               "latency" : {
+                  "after" : 0.9157,
+                  "before" : 0.9154,
+                  "correction_factor" : 0.0035,
+                  "delta" : 0.0003
+               },
+               "saturation" : {
+                  "after" : 0.3791,
+                  "before" : 0.2991,
+                  "correction_factor" : 0.1141,
+                  "delta" : 0.08
+               },
+               "traffic" : {
+                  "after" : 1,
+                  "before" : 1,
+                  "correction_factor" : 0,
+                  "delta" : 0
+               }
+            },
+            "sri_after" : 0.9934,
+            "sri_before" : 0.9993,
+            "timestamp" : "2026-07-04T12:14:55.473940+00:00"
+         },
+         {
+            "action_id" : "queue_drain",
+            "corrections" : {
+               "errors" : {
+                  "after" : 0.9959,
+                  "before" : 0.987,
+                  "correction_factor" : 0.6846,
+                  "delta" : 0.0089
+               },
+               "latency" : {
+                  "after" : 0.9133,
+                  "before" : 0.9128,
+                  "correction_factor" : 0.0057,
+                  "delta" : 0.0005
+               },
+               "saturation" : {
+                  "after" : 0.3773,
+                  "before" : 0.2857,
+                  "correction_factor" : 0.1282,
+                  "delta" : 0.0916
+               },
+               "traffic" : {
+                  "after" : 1,
+                  "before" : 1,
+                  "correction_factor" : 0,
+                  "delta" : 0
+               }
+            },
+            "sri_after" : 0.9913,
+            "sri_before" : 0.9979,
+            "timestamp" : "2026-07-04T12:15:40.617750+00:00"
+         },
+         {
+            "action_id" : "scale_out_cache_node",
+            "corrections" : {
+               "errors" : {
+                  "after" : 0.9193,
+                  "before" : 0.9375,
+                  "correction_factor" : 0,
+                  "delta" : -0.0182
+               },
+               "latency" : {
+                  "after" : 0.9527,
+                  "before" : 0.9517,
+                  "correction_factor" : 0.0207,
+                  "delta" : 0.001
+               },
+               "saturation" : {
+                  "after" : 0.4301,
+                  "before" : 0.3917,
+                  "correction_factor" : 0.0631,
+                  "delta" : 0.0384
+               },
+               "traffic" : {
+                  "after" : 1,
+                  "before" : 1,
+                  "correction_factor" : 0,
+                  "delta" : 0
+               }
+            },
+            "sri_after" : 0.9837,
+            "sri_before" : 0.9806,
+            "timestamp" : "2026-07-04T12:16:21.712741+00:00"
+         },
+         {
+            "action_id" : "queue_drain",
+            "corrections" : {
+               "errors" : {
+                  "after" : 0.9557,
+                  "before" : 0.9557,
+                  "correction_factor" : 0,
+                  "delta" : 0
+               },
+               "latency" : {
+                  "after" : 0.9561,
+                  "before" : 0.9553,
+                  "correction_factor" : 0.0179,
+                  "delta" : 0.0008
+               },
+               "saturation" : {
+                  "after" : 0.4427,
+                  "before" : 0.3877,
+                  "correction_factor" : 0.0898,
+                  "delta" : 0.055
+               },
+               "traffic" : {
+                  "after" : 1,
+                  "before" : 1,
+                  "correction_factor" : 0,
+                  "delta" : 0
+               }
+            },
+            "sri_after" : 0.986,
+            "sri_before" : 0.9939,
+            "timestamp" : "2026-07-04T12:16:28.736652+00:00"
+         },
+         {
+            "action_id" : "scale_out_db_read_replica",
+            "corrections" : {
+               "errors" : {
+                  "after" : 0.9755,
+                  "before" : 0.9755,
+                  "correction_factor" : 0,
+                  "delta" : 0
+               },
+               "latency" : {
+                  "after" : 0.9233,
+                  "before" : 0.922,
+                  "correction_factor" : 0.0167,
+                  "delta" : 0.0013
+               },
+               "saturation" : {
+                  "after" : 0.3837,
+                  "before" : 0.3831,
+                  "correction_factor" : 0.001,
+                  "delta" : 0.0006
+               },
+               "traffic" : {
+                  "after" : 1,
+                  "before" : 1,
+                  "correction_factor" : 0,
+                  "delta" : 0
+               }
+            },
+            "sri_after" : 0.9931,
+            "sri_before" : 0.9934,
+            "timestamp" : "2026-07-04T12:16:35.764658+00:00"
+         },
+         {
+            "action_id" : "queue_drain",
+            "corrections" : {
+               "errors" : {
+                  "after" : 0.9714,
+                  "before" : 0.9714,
+                  "correction_factor" : 0,
+                  "delta" : 0
+               },
+               "latency" : {
+                  "after" : 0.928,
+                  "before" : 0.9276,
+                  "correction_factor" : 0.0055,
+                  "delta" : 0.0004
+               },
+               "saturation" : {
+                  "after" : 0.4081,
+                  "before" : 0.3414,
+                  "correction_factor" : 0.1013,
+                  "delta" : 0.0667
+               },
+               "traffic" : {
+                  "after" : 1,
+                  "before" : 1,
+                  "correction_factor" : 0,
+                  "delta" : 0
+               }
+            },
+            "sri_after" : 0.985,
+            "sri_before" : 0.995,
+            "timestamp" : "2026-07-04T12:17:17.842720+00:00"
+         },
+         {
+            "action_id" : "queue_drain",
+            "corrections" : {
+               "errors" : {
+                  "after" : 0.9837,
+                  "before" : 0.9837,
+                  "correction_factor" : 0,
+                  "delta" : 0
+               },
+               "latency" : {
+                  "after" : 0.927,
+                  "before" : 0.9263,
+                  "correction_factor" : 0.0095,
+                  "delta" : 0.0007
+               },
+               "saturation" : {
+                  "after" : 0.4514,
+                  "before" : 0.4497,
+                  "correction_factor" : 0.0031,
+                  "delta" : 0.0017
+               },
+               "traffic" : {
+                  "after" : 1,
+                  "before" : 1,
+                  "correction_factor" : 0,
+                  "delta" : 0
+               }
+            },
+            "sri_after" : 0.9895,
+            "sri_before" : 0.9835,
+            "timestamp" : "2026-07-04T12:18:06.948420+00:00"
+         },
+         {
+            "action_id" : "queue_drain",
+            "corrections" : {
+               "errors" : {
+                  "after" : 0.9959,
+                  "before" : 0.9959,
+                  "correction_factor" : 0,
+                  "delta" : 0
+               },
+               "latency" : {
+                  "after" : 0.9454,
+                  "before" : 0.9449,
+                  "correction_factor" : 0.0091,
+                  "delta" : 0.0005
+               },
+               "saturation" : {
+                  "after" : 0.3217,
+                  "before" : 0.2333,
+                  "correction_factor" : 0.1153,
+                  "delta" : 0.0884
+               },
+               "traffic" : {
+                  "after" : 1,
+                  "before" : 1,
+                  "correction_factor" : 0,
+                  "delta" : 0
+               }
+            },
+            "sri_after" : 0.9888,
+            "sri_before" : 0.9918,
+            "timestamp" : "2026-07-04T12:18:56.054175+00:00"
+         },
+         {
+            "action_id" : "scale_out_cache_node",
+            "corrections" : {
+               "errors" : {
+                  "after" : 0.9956,
+                  "before" : 0.9956,
+                  "correction_factor" : 0,
+                  "delta" : 0
+               },
+               "latency" : {
+                  "after" : 0.9472,
+                  "before" : 0.9461,
+                  "correction_factor" : 0.0204,
+                  "delta" : 0.0011
+               },
+               "saturation" : {
+                  "after" : 0.4125,
+                  "before" : 0.3183,
+                  "correction_factor" : 0.1382,
+                  "delta" : 0.0942
+               },
+               "traffic" : {
+                  "after" : 1,
+                  "before" : 1,
+                  "correction_factor" : 0,
+                  "delta" : 0
+               }
+            },
+            "sri_after" : 0.9943,
+            "sri_before" : 0.989,
+            "timestamp" : "2026-07-04T12:19:01.208659+00:00"
+         }
+      ],
+      "current_sri" : 0.9925,
+      "enabled" : true,
+      "fea_summary" : {
+         "max_von_mises" : 642.081,
+         "multi_ca_recommended" : true,
+         "recommended_cas" : [
+            "connection_pool_reset",
+            "cache_flush"
+         ],
+         "sri_trend" : {
+            "acceleration" : 1e-08,
+            "current_sri" : 0.9903,
+            "non_recoverable" : false,
+            "non_recoverable_criterion" : {
+               "plateau" : true,
+               "plateau_eps" : 0.0008,
+               "sri_threshold" : 0.3,
+               "sustained_below_threshold" : false
+            },
+            "predicted_30s" : 0.9983,
+            "predicted_60s" : 0.9988,
+            "samples" : 200,
+            "trend" : "stable",
+            "velocity" : 1.6e-05
+         },
+         "total_strain_energy" : 60348.296088,
+         "yield_nodes" : [
+            {
+               "corrective_action" : "connection_pool_reset",
+               "degradation_load" : 0.0079,
+               "displacement" : -79.910305,
+               "health_debt" : 25654.603728,
+               "is_critical" : true,
+               "load" : 0.0079,
+               "metrics" : {
+                  "error_rate_pct" : 0,
+                  "latency_ms" : 3.6,
+                  "saturation_pct" : 1,
+                  "traffic" : 1
+               },
+               "node" : "DB",
+               "service" : "DB",
+               "service_drift" : -79.910305,
+               "service_pressure" : 642.081,
+               "strain_energy" : 25654.603728,
+               "von_mises_stress" : 642.081,
+               "yield_exceeded" : true
+            },
+            {
+               "corrective_action" : "cache_flush",
+               "degradation_load" : 0.029,
+               "displacement" : -79.908992,
+               "health_debt" : 25653.761214,
+               "is_critical" : true,
+               "load" : 0.029,
+               "metrics" : {
+                  "error_rate_pct" : 0,
+                  "latency_ms" : 1.3,
+                  "saturation_pct" : 10.8,
+                  "traffic" : 20
+               },
+               "node" : "Cache",
+               "service" : "Cache",
+               "service_drift" : -79.908992,
+               "service_pressure" : 642.0599,
+               "strain_energy" : 25653.761214,
+               "von_mises_stress" : 642.0599,
+               "yield_exceeded" : true
+            }
+         ],
+         "yield_threshold" : 424.8904
+      },
+      "golden_signals" : {
+         "errors" : {
+            "health" : 0.9945,
+            "threshold" : 10,
+            "unit" : "%",
+            "value" : 0.11
+         },
+         "latency" : {
+            "health" : 0.9661,
+            "threshold" : 200,
+            "unit" : "ms",
+            "value" : 16.97
+         },
+         "saturation" : {
+            "health" : 0.4303,
+            "threshold" : 80,
+            "unit" : "%",
+            "value" : 56.97
+         },
+         "traffic" : {
+            "health" : 1,
+            "threshold" : 20,
+            "unit" : "req/min",
+            "value" : 479
+         }
+      },
+      "mode" : "emergent_intelligence",
+      "rca" : {
+         "root_cause_node" : "DB",
+         "yield_node_count" : 2
+      },
+      "recent_history" : [
+         {
+            "action_id" : "queue_drain",
+            "action_name" : "Queue Drain",
+            "correction_factors" : {
+               "errors" : {
+                  "after" : 0.9742,
+                  "before" : 0.9806,
+                  "correction_factor" : 0,
+                  "delta" : -0.0064
+               },
+               "latency" : {
+                  "after" : 0.833,
+                  "before" : 0.8323,
+                  "correction_factor" : 0.0042,
+                  "delta" : 0.0007
+               },
+               "saturation" : {
+                  "after" : 0.2258,
+                  "before" : 0.1891,
+                  "correction_factor" : 0.0453,
+                  "delta" : 0.0367
+               },
+               "traffic" : {
+                  "after" : 1,
+                  "before" : 1,
+                  "correction_factor" : 0,
+                  "delta" : 0
+               }
+            },
+            "effect" : "Clears message backlog, restores processing throughput",
+            "effectiveness" : {
+               "is_exhausted" : false,
+               "recent_deltas" : [
+                  -0.002373,
+                  -0.001062,
+                  -0.000323,
+                  0.028099,
+                  -0.000178
+               ],
+               "sri_delta" : -0.000178
+            },
+            "golden_signals_after" : {
+               "errors" : 0.52,
+               "latency" : 83.51,
+               "saturation" : 77.42,
+               "traffic" : 1161
+            },
+            "golden_signals_before" : {
+               "errors" : 0.39,
+               "latency" : 83.83,
+               "saturation" : 81.09,
+               "traffic" : 1277
+            },
+            "sri_after" : 0.9988,
+            "sri_before" : 0.999,
+            "sri_delta" : -0.0002,
+            "status" : "success",
+            "target_node" : "Queue",
+            "timestamp" : "2026-07-04T12:14:10.324046+00:00",
+            "trigger_alert" : null,
+            "triggered_by" : "aggressive_mode"
+         },
+         {
+            "action_id" : "queue_drain",
+            "action_name" : "Queue Drain",
+            "correction_factors" : {
+               "errors" : {
+                  "after" : 0.993,
+                  "before" : 0.993,
+                  "correction_factor" : 0,
+                  "delta" : 0
+               },
+               "latency" : {
+                  "after" : 0.9157,
+                  "before" : 0.9154,
+                  "correction_factor" : 0.0035,
+                  "delta" : 0.0003
+               },
+               "saturation" : {
+                  "after" : 0.3791,
+                  "before" : 0.2991,
+                  "correction_factor" : 0.1141,
+                  "delta" : 0.08
+               },
+               "traffic" : {
+                  "after" : 1,
+                  "before" : 1,
+                  "correction_factor" : 0,
+                  "delta" : 0
+               }
+            },
+            "effect" : "Clears message backlog, restores processing throughput",
+            "effectiveness" : {
+               "is_exhausted" : false,
+               "recent_deltas" : [
+                  -0.001062,
+                  -0.000323,
+                  0.028099,
+                  -0.000178,
+                  -0.005845
+               ],
+               "sri_delta" : -0.005845
+            },
+            "golden_signals_after" : {
+               "errors" : 0.14,
+               "latency" : 42.14,
+               "saturation" : 62.09,
+               "traffic" : 933
+            },
+            "golden_signals_before" : {
+               "errors" : 0.14,
+               "latency" : 42.32,
+               "saturation" : 70.09,
+               "traffic" : 981
+            },
+            "sri_after" : 0.9934,
+            "sri_before" : 0.9993,
+            "sri_delta" : -0.0058,
+            "status" : "success",
+            "target_node" : "Queue",
+            "timestamp" : "2026-07-04T12:14:55.473940+00:00",
+            "trigger_alert" : null,
+            "triggered_by" : "aggressive_mode"
+         },
+         {
+            "action_id" : "queue_drain",
+            "action_name" : "Queue Drain",
+            "correction_factors" : {
+               "errors" : {
+                  "after" : 0.9959,
+                  "before" : 0.987,
+                  "correction_factor" : 0.6846,
+                  "delta" : 0.0089
+               },
+               "latency" : {
+                  "after" : 0.9133,
+                  "before" : 0.9128,
+                  "correction_factor" : 0.0057,
+                  "delta" : 0.0005
+               },
+               "saturation" : {
+                  "after" : 0.3773,
+                  "before" : 0.2857,
+                  "correction_factor" : 0.1282,
+                  "delta" : 0.0916
+               },
+               "traffic" : {
+                  "after" : 1,
+                  "before" : 1,
+                  "correction_factor" : 0,
+                  "delta" : 0
+               }
+            },
+            "effect" : "Clears message backlog, restores processing throughput",
+            "effectiveness" : {
+               "is_exhausted" : false,
+               "recent_deltas" : [
+                  -0.000323,
+                  0.028099,
+                  -0.000178,
+                  -0.005845,
+                  -0.006583
+               ],
+               "sri_delta" : -0.006583
+            },
+            "golden_signals_after" : {
+               "errors" : 0.08,
+               "latency" : 43.34,
+               "saturation" : 62.27,
+               "traffic" : 933
+            },
+            "golden_signals_before" : {
+               "errors" : 0.26,
+               "latency" : 43.62,
+               "saturation" : 71.43,
+               "traffic" : 988
+            },
+            "sri_after" : 0.9913,
+            "sri_before" : 0.9979,
+            "sri_delta" : -0.0066,
+            "status" : "success",
+            "target_node" : "Queue",
+            "timestamp" : "2026-07-04T12:15:40.617750+00:00",
+            "trigger_alert" : null,
+            "triggered_by" : "aggressive_mode"
+         },
+         {
+            "action_id" : "scale_out_cache_node",
+            "action_name" : "Scale Out Cache Node",
+            "business_context" : {
+               "apdex" : 0.8983,
+               "business_justification" : "apdex",
+               "conversion_rate" : 0,
+               "reliability_score" : 0.9202
+            },
+            "correction_factors" : {
+               "errors" : {
+                  "after" : 0.9193,
+                  "before" : 0.9375,
+                  "correction_factor" : 0,
+                  "delta" : -0.0182
+               },
+               "latency" : {
+                  "after" : 0.9527,
+                  "before" : 0.9517,
+                  "correction_factor" : 0.0207,
+                  "delta" : 0.001
+               },
+               "saturation" : {
+                  "after" : 0.4301,
+                  "before" : 0.3917,
+                  "correction_factor" : 0.0631,
+                  "delta" : 0.0384
+               },
+               "traffic" : {
+                  "after" : 1,
+                  "before" : 1,
+                  "correction_factor" : 0,
+                  "delta" : 0
+               }
+            },
+            "dip" : {
+               "current_sri" : 0.9806,
+               "dip_magnitude" : 0.0182,
+               "healing_needed" : false,
+               "high_watermark" : 0.9988,
+               "velocity_drop" : 0.007853
+            },
+            "effect" : "Adds cache capacity; reduces Cache latency ~50% and saturation ~65%",
+            "effectiveness" : {
+               "is_exhausted" : false,
+               "recent_deltas" : [
+                  0.001972,
+                  0.003088,
+                  0.007036,
+                  0.012927,
+                  0.003117
+               ],
+               "sri_delta" : 0.003117
+            },
+            "golden_signals_after" : {
+               "errors" : 1.61,
+               "latency" : 23.64,
+               "saturation" : 56.99,
+               "traffic" : 514
+            },
+            "golden_signals_before" : {
+               "errors" : 1.25,
+               "latency" : 24.16,
+               "saturation" : 60.83,
+               "traffic" : 532
+            },
+            "intelligence" : {
+               "action" : "scale_out_cache_node",
+               "hop" : 124,
+               "node" : "Backend",
+               "signal" : "saturation",
+               "sri_delta" : 0.003117,
+               "weight_after" : 1,
+               "weight_before" : 1,
+               "weight_delta" : 0
+            },
+            "rca_confidence" : "high",
+            "rca_root_cause" : "Backend",
+            "rca_score" : 0.637,
+            "selection_method" : "emergent_learned",
+            "sri_after" : 0.9837,
+            "sri_before" : 0.9806,
+            "sri_delta" : 0.0031,
+            "status" : "success",
+            "target_node" : "Cache",
+            "target_signal" : "saturation",
+            "timestamp" : "2026-07-04T12:16:21.712741+00:00",
+            "trend" : "stable",
+            "trigger_alert" : null,
+            "triggered_by" : "emergent_steady"
+         },
+         {
+            "action_id" : "queue_drain",
+            "action_name" : "Queue Drain",
+            "business_context" : {
+               "apdex" : 0.8984,
+               "business_justification" : "apdex",
+               "conversion_rate" : 0,
+               "reliability_score" : 0.9408
+            },
+            "correction_factors" : {
+               "errors" : {
+                  "after" : 0.9557,
+                  "before" : 0.9557,
+                  "correction_factor" : 0,
+                  "delta" : 0
+               },
+               "latency" : {
+                  "after" : 0.9561,
+                  "before" : 0.9553,
+                  "correction_factor" : 0.0179,
+                  "delta" : 0.0008
+               },
+               "saturation" : {
+                  "after" : 0.4427,
+                  "before" : 0.3877,
+                  "correction_factor" : 0.0898,
+                  "delta" : 0.055
+               },
+               "traffic" : {
+                  "after" : 1,
+                  "before" : 1,
+                  "correction_factor" : 0,
+                  "delta" : 0
+               }
+            },
+            "dip" : {
+               "current_sri" : 0.9939,
+               "dip_magnitude" : 0.0049,
+               "healing_needed" : false,
+               "high_watermark" : 0.9988,
+               "velocity_drop" : -0.013317
+            },
+            "effect" : "Clears message backlog, restores processing throughput",
+            "effectiveness" : {
+               "is_exhausted" : false,
+               "recent_deltas" : [
+                  0.028099,
+                  -0.000178,
+                  -0.005845,
+                  -0.006583,
+                  -0.007893
+               ],
+               "sri_delta" : -0.007893
+            },
+            "golden_signals_after" : {
+               "errors" : 0.89,
+               "latency" : 21.94,
+               "saturation" : 55.73,
+               "traffic" : 597
+            },
+            "golden_signals_before" : {
+               "errors" : 0.89,
+               "latency" : 22.37,
+               "saturation" : 61.23,
+               "traffic" : 630
+            },
+            "intelligence" : {
+               "action" : "queue_drain",
+               "hop" : 125,
+               "node" : "Cache",
+               "signal" : "saturation",
+               "sri_delta" : -0.007893,
+               "weight_after" : 1,
+               "weight_before" : 0.9955,
+               "weight_delta" : 0.0045
+            },
+            "rca_confidence" : "high",
+            "rca_root_cause" : "Cache",
+            "rca_score" : 0.5278,
+            "selection_method" : "emergent_learned",
+            "sri_after" : 0.986,
+            "sri_before" : 0.9939,
+            "sri_delta" : -0.0079,
+            "status" : "success",
+            "target_node" : "Queue",
+            "target_signal" : "saturation",
+            "timestamp" : "2026-07-04T12:16:28.736652+00:00",
+            "trend" : "stable",
+            "trigger_alert" : null,
+            "triggered_by" : "emergent_steady"
+         },
+         {
+            "action_id" : "scale_out_db_read_replica",
+            "action_name" : "Scale Out DB Read Replica",
+            "business_context" : {
+               "apdex" : 0.8983,
+               "business_justification" : "apdex",
+               "conversion_rate" : 0,
+               "reliability_score" : 0.9478
+            },
+            "correction_factors" : {
+               "errors" : {
+                  "after" : 0.9755,
+                  "before" : 0.9755,
+                  "correction_factor" : 0,
+                  "delta" : 0
+               },
+               "latency" : {
+                  "after" : 0.9233,
+                  "before" : 0.922,
+                  "correction_factor" : 0.0167,
+                  "delta" : 0.0013
+               },
+               "saturation" : {
+                  "after" : 0.3837,
+                  "before" : 0.3831,
+                  "correction_factor" : 0.001,
+                  "delta" : 0.0006
+               },
+               "traffic" : {
+                  "after" : 1,
+                  "before" : 1,
+                  "correction_factor" : 0,
+                  "delta" : 0
+               }
+            },
+            "dip" : {
+               "current_sri" : 0.9934,
+               "dip_magnitude" : 0.0054,
+               "healing_needed" : false,
+               "high_watermark" : 0.9987,
+               "velocity_drop" : 0.000494
+            },
+            "effect" : "Splits read load across replicas; reduces DB latency ~40% and saturation ~55%",
+            "effectiveness" : {
+               "is_exhausted" : false,
+               "recent_deltas" : [
+                  -0.000825,
+                  0.002926,
+                  -0.005719,
+                  -0.000306
+               ],
+               "sri_delta" : -0.000306
+            },
+            "golden_signals_after" : {
+               "errors" : 0.49,
+               "latency" : 38.37,
+               "saturation" : 61.63,
+               "traffic" : 804
+            },
+            "golden_signals_before" : {
+               "errors" : 0.49,
+               "latency" : 39.02,
+               "saturation" : 61.69,
+               "traffic" : 804
+            },
+            "intelligence" : {
+               "action" : "scale_out_db_read_replica",
+               "hop" : 126,
+               "node" : "Cache",
+               "signal" : "saturation",
+               "sri_delta" : -0.000306,
+               "weight_after" : 0.4955,
+               "weight_before" : 0.5,
+               "weight_delta" : -0.0045
+            },
+            "rca_confidence" : "high",
+            "rca_root_cause" : "Cache",
+            "rca_score" : 0.521,
+            "selection_method" : "emergent_learned",
+            "sri_after" : 0.9931,
+            "sri_before" : 0.9934,
+            "sri_delta" : -0.0003,
+            "status" : "success",
+            "target_node" : "DB",
+            "target_signal" : "saturation",
+            "timestamp" : "2026-07-04T12:16:35.764658+00:00",
+            "trend" : "stable",
+            "trigger_alert" : null,
+            "triggered_by" : "emergent_steady"
+         },
+         {
+            "action_id" : "queue_drain",
+            "action_name" : "Queue Drain",
+            "business_context" : {
+               "apdex" : 0.8986,
+               "business_justification" : "apdex",
+               "conversion_rate" : 0,
+               "reliability_score" : 0.9468
+            },
+            "correction_factors" : {
+               "errors" : {
+                  "after" : 0.9714,
+                  "before" : 0.9714,
+                  "correction_factor" : 0,
+                  "delta" : 0
+               },
+               "latency" : {
+                  "after" : 0.928,
+                  "before" : 0.9276,
+                  "correction_factor" : 0.0055,
+                  "delta" : 0.0004
+               },
+               "saturation" : {
+                  "after" : 0.4081,
+                  "before" : 0.3414,
+                  "correction_factor" : 0.1013,
+                  "delta" : 0.0667
+               },
+               "traffic" : {
+                  "after" : 1,
+                  "before" : 1,
+                  "correction_factor" : 0,
+                  "delta" : 0
+               }
+            },
+            "dip" : {
+               "current_sri" : 0.995,
+               "dip_magnitude" : 0.0036,
+               "healing_needed" : false,
+               "high_watermark" : 0.9986,
+               "velocity_drop" : 0.000418
+            },
+            "effect" : "Clears message backlog, restores processing throughput",
+            "effectiveness" : {
+               "is_exhausted" : false,
+               "recent_deltas" : [
+                  -0.000178,
+                  -0.005845,
+                  -0.006583,
+                  -0.007893,
+                  -0.010043
+               ],
+               "sri_delta" : -0.010043
+            },
+            "golden_signals_after" : {
+               "errors" : 0.57,
+               "latency" : 36.01,
+               "saturation" : 59.19,
+               "traffic" : 663
+            },
+            "golden_signals_before" : {
+               "errors" : 0.57,
+               "latency" : 36.2,
+               "saturation" : 65.86,
+               "traffic" : 703
+            },
+            "intelligence" : {
+               "action" : "queue_drain",
+               "hop" : 127,
+               "node" : "Cache",
+               "signal" : "saturation",
+               "sri_delta" : -0.010043,
+               "weight_after" : 1,
+               "weight_before" : 1,
+               "weight_delta" : 0
+            },
+            "rca_confidence" : "high",
+            "rca_root_cause" : "Cache",
+            "rca_score" : 0.5223,
+            "selection_method" : "emergent_learned",
+            "sri_after" : 0.985,
+            "sri_before" : 0.995,
+            "sri_delta" : -0.01,
+            "status" : "success",
+            "target_node" : "Queue",
+            "target_signal" : "saturation",
+            "timestamp" : "2026-07-04T12:17:17.842720+00:00",
+            "trend" : "stable",
+            "trigger_alert" : null,
+            "triggered_by" : "emergent_steady"
+         },
+         {
+            "action_id" : "queue_drain",
+            "action_name" : "Queue Drain",
+            "business_context" : {
+               "apdex" : 0.899,
+               "business_justification" : "apdex",
+               "conversion_rate" : 0,
+               "reliability_score" : 0.9503
+            },
+            "correction_factors" : {
+               "errors" : {
+                  "after" : 0.9837,
+                  "before" : 0.9837,
+                  "correction_factor" : 0,
+                  "delta" : 0
+               },
+               "latency" : {
+                  "after" : 0.927,
+                  "before" : 0.9263,
+                  "correction_factor" : 0.0095,
+                  "delta" : 0.0007
+               },
+               "saturation" : {
+                  "after" : 0.4514,
+                  "before" : 0.4497,
+                  "correction_factor" : 0.0031,
+                  "delta" : 0.0017
+               },
+               "traffic" : {
+                  "after" : 1,
+                  "before" : 1,
+                  "correction_factor" : 0,
+                  "delta" : 0
+               }
+            },
+            "dip" : {
+               "current_sri" : 0.9835,
+               "dip_magnitude" : 0.0151,
+               "healing_needed" : false,
+               "high_watermark" : 0.9986,
+               "velocity_drop" : 0.004684
+            },
+            "effect" : "Clears message backlog, restores processing throughput",
+            "effectiveness" : {
+               "is_exhausted" : false,
+               "recent_deltas" : [
+                  -0.005845,
+                  -0.006583,
+                  -0.007893,
+                  -0.010043,
+                  0.006033
+               ],
+               "sri_delta" : 0.006033
+            },
+            "golden_signals_after" : {
+               "errors" : 0.33,
+               "latency" : 36.49,
+               "saturation" : 54.86,
+               "traffic" : 641
+            },
+            "golden_signals_before" : {
+               "errors" : 0.33,
+               "latency" : 36.87,
+               "saturation" : 55.03,
+               "traffic" : 642
+            },
+            "intelligence" : {
+               "action" : "queue_drain",
+               "hop" : 128,
+               "node" : "Cache",
+               "signal" : "saturation",
+               "sri_delta" : 0.006033,
+               "weight_after" : 1,
+               "weight_before" : 1,
+               "weight_delta" : 0
+            },
+            "rca_confidence" : "high",
+            "rca_root_cause" : "Cache",
+            "rca_score" : 0.5224,
+            "selection_method" : "emergent_learned",
+            "sri_after" : 0.9895,
+            "sri_before" : 0.9835,
+            "sri_delta" : 0.006,
+            "status" : "success",
+            "target_node" : "Queue",
+            "target_signal" : "saturation",
+            "timestamp" : "2026-07-04T12:18:06.948420+00:00",
+            "trend" : "stable",
+            "trigger_alert" : null,
+            "triggered_by" : "emergent_steady"
+         },
+         {
+            "action_id" : "queue_drain",
+            "action_name" : "Queue Drain",
+            "business_context" : {
+               "apdex" : 0.8995,
+               "business_justification" : "apdex",
+               "conversion_rate" : 0,
+               "reliability_score" : 0.96
+            },
+            "correction_factors" : {
+               "errors" : {
+                  "after" : 0.9959,
+                  "before" : 0.9959,
+                  "correction_factor" : 0,
+                  "delta" : 0
+               },
+               "latency" : {
+                  "after" : 0.9454,
+                  "before" : 0.9449,
+                  "correction_factor" : 0.0091,
+                  "delta" : 0.0005
+               },
+               "saturation" : {
+                  "after" : 0.3217,
+                  "before" : 0.2333,
+                  "correction_factor" : 0.1153,
+                  "delta" : 0.0884
+               },
+               "traffic" : {
+                  "after" : 1,
+                  "before" : 1,
+                  "correction_factor" : 0,
+                  "delta" : 0
+               }
+            },
+            "dip" : {
+               "current_sri" : 0.9918,
+               "dip_magnitude" : 0.0065,
+               "healing_needed" : false,
+               "high_watermark" : 0.9983,
+               "velocity_drop" : 7.7e-05
+            },
+            "effect" : "Clears message backlog, restores processing throughput",
+            "effectiveness" : {
+               "is_exhausted" : false,
+               "recent_deltas" : [
+                  -0.006583,
+                  -0.007893,
+                  -0.010043,
+                  0.006033,
+                  -0.002939
+               ],
+               "sri_delta" : -0.002939
+            },
+            "golden_signals_after" : {
+               "errors" : 0.08,
+               "latency" : 27.28,
+               "saturation" : 67.83,
+               "traffic" : 927
+            },
+            "golden_signals_before" : {
+               "errors" : 0.08,
+               "latency" : 27.55,
+               "saturation" : 76.67,
+               "traffic" : 980
+            },
+            "intelligence" : {
+               "action" : "queue_drain",
+               "hop" : 129,
+               "node" : "Cache",
+               "signal" : "saturation",
+               "sri_delta" : -0.002939,
+               "weight_after" : 1,
+               "weight_before" : 1,
+               "weight_delta" : 0
+            },
+            "rca_confidence" : "high",
+            "rca_root_cause" : "Cache",
+            "rca_score" : 0.5474,
+            "selection_method" : "emergent_learned",
+            "sri_after" : 0.9888,
+            "sri_before" : 0.9918,
+            "sri_delta" : -0.0029,
+            "status" : "success",
+            "target_node" : "Queue",
+            "target_signal" : "saturation",
+            "timestamp" : "2026-07-04T12:18:56.054175+00:00",
+            "trend" : "stable",
+            "trigger_alert" : null,
+            "triggered_by" : "emergent_steady"
+         },
+         {
+            "action_id" : "scale_out_cache_node",
+            "action_name" : "Scale Out Cache Node",
+            "correction_factors" : {
+               "errors" : {
+                  "after" : 0.9956,
+                  "before" : 0.9956,
+                  "correction_factor" : 0,
+                  "delta" : 0
+               },
+               "latency" : {
+                  "after" : 0.9472,
+                  "before" : 0.9461,
+                  "correction_factor" : 0.0204,
+                  "delta" : 0.0011
+               },
+               "saturation" : {
+                  "after" : 0.4125,
+                  "before" : 0.3183,
+                  "correction_factor" : 0.1382,
+                  "delta" : 0.0942
+               },
+               "traffic" : {
+                  "after" : 1,
+                  "before" : 1,
+                  "correction_factor" : 0,
+                  "delta" : 0
+               }
+            },
+            "effect" : "Adds cache capacity; reduces Cache latency ~50% and saturation ~65%",
+            "effectiveness" : {
+               "is_exhausted" : false,
+               "recent_deltas" : [
+                  0.003088,
+                  0.007036,
+                  0.012927,
+                  0.003117,
+                  0.005269
+               ],
+               "sri_delta" : 0.005269
+            },
+            "golden_signals_after" : {
+               "errors" : 0.09,
+               "latency" : 26.42,
+               "saturation" : 58.75,
+               "traffic" : 848
+            },
+            "golden_signals_before" : {
+               "errors" : 0.09,
+               "latency" : 26.96,
+               "saturation" : 68.17,
+               "traffic" : 893
+            },
+            "sri_after" : 0.9943,
+            "sri_before" : 0.989,
+            "sri_delta" : 0.0053,
+            "status" : "success",
+            "target_node" : "Cache",
+            "timestamp" : "2026-07-04T12:19:01.208659+00:00",
+            "trigger_alert" : null,
+            "triggered_by" : "aggressive_mode"
+         }
+      ],
+      "recommendations" : [
+         {
+            "action_id" : "scale_out_frontend",
+            "action_name" : "Scale Out Frontend",
+            "can_execute" : true,
+            "current_sri" : 0.9925,
+            "description" : "Add a Frontend replica to absorb client-facing load",
+            "effect" : "Adds compute capacity; reduces Frontend latency ~45% and saturation ~60%",
+            "node_metrics" : {
+               "error_rate" : 0,
+               "latency" : 63.5,
+               "saturation" : 100,
+               "traffic" : 104
+            },
+            "priority" : "medium",
+            "projected_sri" : 1,
+            "sri_improvement" : 0.13,
+            "target_node" : "Frontend",
+            "urgency" : 2
+         },
+         {
+            "action_id" : "scale_out_backend",
+            "action_name" : "Scale Out Backend",
+            "can_execute" : true,
+            "current_sri" : 0.9925,
+            "description" : "Add a Backend worker replica to spread compute + IO load",
+            "effect" : "Adds compute capacity; reduces Backend latency ~40% and saturation ~55%",
+            "node_metrics" : {
+               "error_rate" : 0.7,
+               "latency" : 4.7,
+               "saturation" : 100,
+               "traffic" : 152
+            },
+            "priority" : "medium",
+            "projected_sri" : 1,
+            "sri_improvement" : 0.13,
+            "target_node" : "Backend",
+            "urgency" : 2
+         },
+         {
+            "action_id" : "rate_limit",
+            "action_name" : "Rate Limiter",
+            "can_execute" : true,
+            "current_sri" : 0.9925,
+            "description" : "Activate adaptive rate limiting to reduce API overload",
+            "effect" : "Reduces API saturation by ~30%, prevents cascading failures",
+            "node_metrics" : {
+               "error_rate" : 0,
+               "latency" : 26.1,
+               "saturation" : 100,
+               "traffic" : 172
+            },
+            "priority" : "medium",
+            "projected_sri" : 1,
+            "sri_improvement" : 0.12,
+            "target_node" : "API",
+            "urgency" : 2
+         },
+         {
+            "action_id" : "scale_in_cache_node",
+            "action_name" : "Scale In Cache Node",
+            "can_execute" : true,
+            "current_sri" : 0.9925,
+            "description" : "Decommission a Cache node when over-provisioned",
+            "effect" : "Returns cache capacity; M/M_cap rises toward Ψ_c target 0.55",
+            "node_metrics" : {
+               "error_rate" : 0,
+               "latency" : 1.3,
+               "saturation" : 10.8,
+               "traffic" : 20
+            },
+            "priority" : "medium",
+            "projected_sri" : 0.9725,
+            "sri_improvement" : -0.02,
+            "target_node" : "Cache",
+            "urgency" : 0
+         }
+      ],
+      "signal_contributions" : {
+         "errors" : 0.3978,
+         "latency" : 0.2898,
+         "saturation" : 0.0861,
+         "traffic" : 0.1
+      },
+      "sri_dip_detection" : {
+         "dip_threshold" : 0.02,
+         "high_watermark" : 0.9981,
+         "last_sri" : 0.9934
+      },
+      "total_actions_executed" : 363
+   },
+   "metrics_real" : {
+      "avg_error" : 0.00109649122807018,
+      "avg_latency" : 16.9824921128753,
+      "avg_saturation" : 0.569684684684685,
+      "baseline_sri" : 0.85,
+      "customer_experience" : {
+         "apdex" : 0.8999,
+         "apdex_label" : "Good",
+         "availability" : 99.286,
+         "error_budget" : {
+            "consumed" : 0.714,
+            "remaining" : 0,
+            "remaining_pct" : 0,
+            "slo" : 99.5,
+            "total" : 0.5
+         },
+         "frustrated" : 6552,
+         "p50" : 14.6,
+         "p95" : 344,
+         "p99" : 925,
+         "satisfied" : 106773,
+         "tolerating" : 11991,
+         "total_errors" : 895,
+         "total_requests" : 125316,
+         "uptime_seconds" : 9505
+      },
+      "edges" : [
+         {
+            "capacity" : 0.1,
+            "source" : "Frontend",
+            "target" : "API",
+            "weight" : 0.1
+         },
+         {
+            "capacity" : 0.1,
+            "source" : "API",
+            "target" : "Cache",
+            "weight" : 0.1
+         },
+         {
+            "capacity" : 0.1,
+            "source" : "API",
+            "target" : "DB",
+            "weight" : 0.1
+         },
+         {
+            "capacity" : 0.1,
+            "source" : "API",
+            "target" : "Queue",
+            "weight" : 0.1
+         },
+         {
+            "capacity" : 8.8793,
+            "source" : "Cache",
+            "target" : "DB",
+            "weight" : 8.8793
+         },
+         {
+            "capacity" : 6.9404,
+            "source" : "Queue",
+            "target" : "Backend",
+            "weight" : 6.9404
+         }
+      ],
+      "eigenvalues" : [
+         0,
+         0.061224,
+         0.1,
+         0.488223,
+         13.931346,
+         17.858663
+      ],
+      "energy" : 0.401985,
+      "energy_max" : 53.276,
+      "fiedler" : [
+         0.130057399465344,
+         0.335409681007326,
+         0.335409681007326,
+         -0.565626197827409,
+         -0.570660244659917,
+         0.33540968100732
+      ],
+      "flows" : [
+         {
+            "flow" : 0.005593,
+            "source" : "Frontend",
+            "target" : "API"
+         },
+         {
+            "flow" : 0.030489,
+            "source" : "API",
+            "target" : "Cache"
+         },
+         {
+            "flow" : 0.033088,
+            "source" : "API",
+            "target" : "DB"
+         },
+         {
+            "flow" : 0.024549,
+            "source" : "API",
+            "target" : "Queue"
+         },
+         {
+            "flow" : 0.230769,
+            "source" : "Cache",
+            "target" : "DB"
+         },
+         {
+            "flow" : -1.601189,
+            "source" : "Queue",
+            "target" : "Backend"
+         }
+      ],
+      "golden_signals" : {
+         "errors" : {
+            "health" : 0.9945,
+            "threshold" : 10,
+            "unit" : "%",
+            "value" : 0.11
+         },
+         "latency" : {
+            "health" : 0.966,
+            "threshold" : 200,
+            "unit" : "ms",
+            "value" : 16.98
+         },
+         "saturation" : {
+            "health" : 0.4303,
+            "threshold" : 80,
+            "unit" : "%",
+            "value" : 56.97
+         },
+         "traffic" : {
+            "health" : 1,
+            "threshold" : 20,
+            "unit" : "req/min",
+            "value" : 479
+         }
+      },
+      "lambda2" : 0.061224,
+      "node_state" : {
+         "API" : {
+            "capacity" : 0.1,
+            "load" : 0.3393
+         },
+         "Backend" : {
+            "capacity" : 0.1,
+            "load" : 0.3245
+         },
+         "Cache" : {
+            "capacity" : 0.8919,
+            "load" : 0.0344
+         },
+         "DB" : {
+            "capacity" : 0.99,
+            "load" : 0.0084
+         },
+         "Frontend" : {
+            "capacity" : 0.1,
+            "load" : 0.3953
+         },
+         "Queue" : {
+            "capacity" : 0.7,
+            "load" : 0.0938
+         }
+      },
+      "nodes" : [
+         {
+            "error" : 0,
+            "id" : "API",
+            "latency" : 26.2164861656899,
+            "saturation" : 1,
+            "traffic" : 172
+         },
+         {
+            "error" : 0,
+            "id" : "Cache",
+            "latency" : 1.33157768156789,
+            "saturation" : 0.108108108108108,
+            "traffic" : 20
+         },
+         {
+            "error" : 0,
+            "id" : "DB",
+            "latency" : 3.6269051348807,
+            "saturation" : 0.01,
+            "traffic" : 1
+         },
+         {
+            "error" : 0,
+            "id" : "Queue",
+            "latency" : 2.55441968015817,
+            "saturation" : 0.3,
+            "traffic" : 30
+         },
+         {
+            "error" : 0.00657894736842105,
+            "id" : "Backend",
+            "latency" : 4.66234038572891,
+            "saturation" : 1,
+            "traffic" : 152
+         },
+         {
+            "error" : 0,
+            "id" : "Frontend",
+            "latency" : 63.5032236292261,
+            "saturation" : 1,
+            "traffic" : 104
+         }
+      ],
+      "raw_sri" : 0.992454665001646,
+      "signal_contributions" : {
+         "errors" : 0.3978,
+         "latency" : 0.2898,
+         "saturation" : 0.0861,
+         "traffic" : 0.1
+      },
+      "source" : "physical_model",
+      "sri" : 0.992454665001646,
+      "stability" : {
+         "gamma" : 0.4803,
+         "is_stable" : true,
+         "min_eigenvalue" : 0.480315
+      },
+      "warmup_complete" : true,
+      "weak_edges" : [
+         {
+            "source" : "API",
+            "target" : "Queue"
+         }
+      ]
+   },
+   "reliability" : {
+      "components" : {
+         "availability" : {
+            "contribution" : 0.2482,
+            "value" : 0.9929,
+            "weight" : 0.25
+         },
+         "conversion_health" : {
+            "contribution" : 0.2443,
+            "value" : 0.9771,
+            "weight" : 0.25
+         },
+         "customer_apdex" : {
+            "contribution" : 0.27,
+            "value" : 0.8999,
+            "weight" : 0.3
+         },
+         "resilience_sri" : {
+            "contribution" : 0.1985,
+            "value" : 0.9924,
+            "weight" : 0.2
+         }
+      },
+      "funnel" : {
+         "add_to_cart" : 0,
+         "checkout_starts" : 0,
+         "conversion_rates" : {
+            "cart_to_checkout" : 0,
+            "checkout_to_order" : 0,
+            "overall" : 0,
+            "view_to_cart" : 0
+         },
+         "modeled_conversion" : {
+            "base_conversion_rate" : 0.035,
+            "effective_conversion_rate" : 0.0342,
+            "error_impact_factor" : 0.989,
+            "health_adjusted_funnel" : {
+               "cart_to_checkout" : 0.5934,
+               "checkout_to_order" : 0.8311,
+               "view_to_cart" : 0.1483
+            },
+            "improvement_opportunity" : {
+               "current" : 0.0342,
+               "if_errors_zero" : 0.0346,
+               "if_latency_halved" : 0.0346
+            },
+            "latency_impact_factor" : 0.9887,
+            "projected_revenue_per_min" : 408.11
+         },
+         "orders_completed" : 0,
+         "page_views" : 0,
+         "revenue_5min" : 0,
+         "total_revenue" : 0,
+         "totals" : {
+            "add_to_cart" : 0,
+            "checkout_start" : 0,
+            "order_complete" : 0,
+            "page_view" : 230
+         },
+         "window_seconds" : 300
+      },
+      "label" : "excellent",
+      "modeled_conversion" : {
+         "base_conversion_rate" : 0.035,
+         "effective_conversion_rate" : 0.0342,
+         "error_impact_factor" : 0.989,
+         "health_adjusted_funnel" : {
+            "cart_to_checkout" : 0.5934,
+            "checkout_to_order" : 0.8311,
+            "view_to_cart" : 0.1483
+         },
+         "improvement_opportunity" : {
+            "current" : 0.0342,
+            "if_errors_zero" : 0.0346,
+            "if_latency_halved" : 0.0346
+         },
+         "latency_impact_factor" : 0.9887,
+         "projected_revenue_per_min" : 408.11
+      },
+      "score" : 0.961,
+      "trend" : {
+         "acceleration" : 1e-08,
+         "current_sri" : 0.9903,
+         "non_recoverable" : false,
+         "non_recoverable_criterion" : {
+            "plateau" : true,
+            "plateau_eps" : 0.0008,
+            "sri_threshold" : 0.3,
+            "sustained_below_threshold" : false
+         },
+         "predicted_30s" : 0.9983,
+         "predicted_60s" : 0.9988,
+         "samples" : 200,
+         "trend" : "stable",
+         "velocity" : 1.6e-05
+      }
+   },
+   "report" : {},
+   "topology_schema" : {
+      "components" : {
+         "API" : [
+            "API.auth",
+            "API.catalog",
+            "API.cart",
+            "API.checkout",
+            "API.orders",
+            "API.search",
+            "API.recommendations",
+            "API.admin",
+            "API.rate_limiter"
+         ],
+         "Backend" : [
+            "Backend.sri_engine",
+            "Backend.healing_engine",
+            "Backend.fea_engine",
+            "Backend.analytics",
+            "Backend.attribution",
+            "Backend.cx_tracker",
+            "Backend.webhook_dispatch",
+            "Backend.scheduler"
+         ],
+         "Cache" : [
+            "Cache.session",
+            "Cache.product",
+            "Cache.price",
+            "Cache.search_index",
+            "Cache.cart_state",
+            "Cache.rate_limit_buckets",
+            "Cache.feature_flags"
+         ],
+         "DB" : [
+            "DB.users",
+            "DB.products",
+            "DB.orders",
+            "DB.metrics",
+            "DB.carts",
+            "DB.inventory",
+            "DB.audit_log",
+            "DB.replica"
+         ],
+         "Frontend" : [
+            "Frontend.page_load",
+            "Frontend.render",
+            "Frontend.api_calls",
+            "Frontend.js_errors",
+            "Frontend.assets",
+            "Frontend.router",
+            "Frontend.state_store",
+            "Frontend.rum_beacon"
+         ],
+         "Queue" : [
+            "Queue.orders",
+            "Queue.healing",
+            "Queue.metrics",
+            "Queue.email",
+            "Queue.fulfillment",
+            "Queue.dead_letter"
+         ]
+      },
+      "endpoint_edges" : [
+         [
+            "Frontend.page_load.home",
+            "Frontend.page_load.products"
+         ],
+         [
+            "Frontend.page_load.products",
+            "Frontend.page_load.cart"
+         ],
+         [
+            "Frontend.page_load.cart",
+            "Frontend.page_load.checkout"
+         ],
+         [
+            "Frontend.render.tree",
+            "Frontend.render.commit"
+         ],
+         [
+            "Frontend.api_calls.GET",
+            "Frontend.api_calls.POST"
+         ],
+         [
+            "Frontend.api_calls.POST",
+            "Frontend.api_calls.WS"
+         ],
+         [
+            "Frontend.js_errors.uncaught",
+            "Frontend.js_errors.unhandled_rejection"
+         ],
+         [
+            "Frontend.assets.js_bundle",
+            "Frontend.assets.css"
+         ],
+         [
+            "Frontend.assets.css",
+            "Frontend.assets.images"
+         ],
+         [
+            "Frontend.state_store.cart",
+            "Frontend.state_store.auth"
+         ],
+         [
+            "API.auth.login",
+            "API.auth.register"
+         ],
+         [
+            "API.auth.register",
+            "API.auth.me"
+         ],
+         [
+            "API.auth.me",
+            "API.auth.logout"
+         ],
+         [
+            "API.catalog.list",
+            "API.catalog.detail"
+         ],
+         [
+            "API.catalog.detail",
+            "API.catalog.categories"
+         ],
+         [
+            "API.cart.get",
+            "API.cart.add"
+         ],
+         [
+            "API.cart.add",
+            "API.cart.update"
+         ],
+         [
+            "API.cart.update",
+            "API.cart.remove"
+         ],
+         [
+            "API.checkout.start",
+            "API.checkout.pay"
+         ],
+         [
+            "API.checkout.pay",
+            "API.checkout.confirm"
+         ],
+         [
+            "API.orders.create",
+            "API.orders.list"
+         ],
+         [
+            "API.orders.list",
+            "API.orders.detail"
+         ],
+         [
+            "API.search.query",
+            "API.search.suggest"
+         ],
+         [
+            "API.recommendations.related",
+            "API.recommendations.trending"
+         ],
+         [
+            "API.admin.products_create",
+            "API.admin.orders_list"
+         ],
+         [
+            "API.admin.orders_list",
+            "API.admin.webhooks"
+         ],
+         [
+            "API.rate_limiter.check",
+            "API.rate_limiter.tick"
+         ],
+         [
+            "Cache.session.get",
+            "Cache.session.set"
+         ],
+         [
+            "Cache.session.set",
+            "Cache.session.evict"
+         ],
+         [
+            "Cache.product.get",
+            "Cache.product.set"
+         ],
+         [
+            "Cache.search_index.lookup",
+            "Cache.search_index.rebuild"
+         ],
+         [
+            "Cache.cart_state.get",
+            "Cache.cart_state.set"
+         ],
+         [
+            "DB.users.find_by_email",
+            "DB.users.insert"
+         ],
+         [
+            "DB.users.insert",
+            "DB.users.update_prefs"
+         ],
+         [
+            "DB.products.find",
+            "DB.products.by_id"
+         ],
+         [
+            "DB.products.by_id",
+            "DB.products.by_category"
+         ],
+         [
+            "DB.orders.insert",
+            "DB.orders.find_by_user"
+         ],
+         [
+            "DB.orders.find_by_user",
+            "DB.orders.find_by_id"
+         ],
+         [
+            "DB.orders.find_by_id",
+            "DB.orders.update_status"
+         ],
+         [
+            "DB.metrics.append",
+            "DB.metrics.aggregate"
+         ],
+         [
+            "DB.carts.find",
+            "DB.carts.update"
+         ],
+         [
+            "DB.carts.update",
+            "DB.carts.upsert"
+         ],
+         [
+            "DB.inventory.decrement",
+            "DB.inventory.read"
+         ],
+         [
+            "Queue.orders.publish",
+            "Queue.orders.consume"
+         ],
+         [
+            "Queue.healing.publish",
+            "Queue.healing.consume"
+         ],
+         [
+            "Queue.metrics.publish",
+            "Queue.metrics.consume"
+         ],
+         [
+            "Queue.email.publish",
+            "Queue.email.consume"
+         ],
+         [
+            "Queue.fulfillment.publish",
+            "Queue.fulfillment.consume"
+         ],
+         [
+            "Backend.sri_engine.compute",
+            "Backend.sri_engine.trend"
+         ],
+         [
+            "Backend.healing_engine.tick",
+            "Backend.healing_engine.execute"
+         ],
+         [
+            "Backend.healing_engine.execute",
+            "Backend.healing_engine.adapt"
+         ],
+         [
+            "Backend.fea_engine.solve",
+            "Backend.fea_engine.cascade"
+         ],
+         [
+            "Backend.cx_tracker.sample",
+            "Backend.cx_tracker.percentiles"
+         ],
+         [
+            "Backend.webhook_dispatch.slack",
+            "Backend.webhook_dispatch.discord"
+         ],
+         [
+            "Backend.scheduler.heal_loop",
+            "Backend.scheduler.propagation_loop"
+         ],
+         [
+            "Frontend.page_load.home",
+            "Frontend.assets.js_bundle"
+         ],
+         [
+            "Frontend.assets.js_bundle",
+            "Frontend.render.tree"
+         ],
+         [
+            "Frontend.render.tree",
+            "Frontend.router.transition"
+         ],
+         [
+            "Frontend.router.transition",
+            "Frontend.state_store.cart"
+         ],
+         [
+            "Frontend.state_store.cart",
+            "Frontend.api_calls.GET"
+         ],
+         [
+            "Frontend.api_calls.GET",
+            "Frontend.js_errors.uncaught"
+         ],
+         [
+            "Frontend.render.tree",
+            "Frontend.rum_beacon.tick"
+         ],
+         [
+            "Frontend.api_calls.GET",
+            "Frontend.rum_beacon.tick"
+         ],
+         [
+            "API.auth.login",
+            "API.catalog.list"
+         ],
+         [
+            "API.auth.login",
+            "API.cart.get"
+         ],
+         [
+            "API.catalog.list",
+            "API.cart.get"
+         ],
+         [
+            "API.catalog.list",
+            "API.search.query"
+         ],
+         [
+            "API.cart.get",
+            "API.checkout.start"
+         ],
+         [
+            "API.checkout.start",
+            "API.orders.create"
+         ],
+         [
+            "API.catalog.list",
+            "API.recommendations.related"
+         ],
+         [
+            "API.recommendations.related",
+            "API.search.query"
+         ],
+         [
+            "API.admin.products_create",
+            "API.catalog.list"
+         ],
+         [
+            "API.admin.products_create",
+            "API.orders.create"
+         ],
+         [
+            "API.rate_limiter.check",
+            "API.auth.login"
+         ],
+         [
+            "API.rate_limiter.check",
+            "API.checkout.start"
+         ],
+         [
+            "Cache.session.get",
+            "Cache.product.get"
+         ],
+         [
+            "Cache.product.get",
+            "Cache.price.get"
+         ],
+         [
+            "Cache.product.get",
+            "Cache.search_index.lookup"
+         ],
+         [
+            "Cache.cart_state.get",
+            "Cache.session.get"
+         ],
+         [
+            "Cache.rate_limit_buckets.tick",
+            "Cache.session.get"
+         ],
+         [
+            "Cache.feature_flags.read",
+            "Cache.session.get"
+         ],
+         [
+            "DB.users.find_by_email",
+            "DB.orders.insert"
+         ],
+         [
+            "DB.products.find",
+            "DB.orders.insert"
+         ],
+         [
+            "DB.products.find",
+            "DB.inventory.decrement"
+         ],
+         [
+            "DB.orders.insert",
+            "DB.metrics.append"
+         ],
+         [
+            "DB.carts.find",
+            "DB.orders.insert"
+         ],
+         [
+            "DB.carts.find",
+            "DB.users.find_by_email"
+         ],
+         [
+            "DB.audit_log.append",
+            "DB.orders.insert"
+         ],
+         [
+            "DB.audit_log.append",
+            "DB.users.find_by_email"
+         ],
+         [
+            "DB.replica.read",
+            "DB.users.find_by_email"
+         ],
+         [
+            "DB.replica.read",
+            "DB.products.find"
+         ],
+         [
+            "DB.replica.read",
+            "DB.orders.insert"
+         ],
+         [
+            "Queue.orders.publish",
+            "Queue.fulfillment.publish"
+         ],
+         [
+            "Queue.orders.publish",
+            "Queue.email.publish"
+         ],
+         [
+            "Queue.healing.publish",
+            "Queue.metrics.publish"
+         ],
+         [
+            "Queue.fulfillment.publish",
+            "Queue.dead_letter.append"
+         ],
+         [
+            "Queue.email.publish",
+            "Queue.dead_letter.append"
+         ],
+         [
+            "Backend.sri_engine.compute",
+            "Backend.healing_engine.tick"
+         ],
+         [
+            "Backend.healing_engine.tick",
+            "Backend.fea_engine.solve"
+         ],
+         [
+            "Backend.fea_engine.solve",
+            "Backend.analytics.rollup"
+         ],
+         [
+            "Backend.sri_engine.compute",
+            "Backend.analytics.rollup"
+         ],
+         [
+            "Backend.sri_engine.compute",
+            "Backend.attribution.decompose"
+         ],
+         [
+            "Backend.attribution.decompose",
+            "Backend.analytics.rollup"
+         ],
+         [
+            "Backend.cx_tracker.sample",
+            "Backend.analytics.rollup"
+         ],
+         [
+            "Backend.healing_engine.tick",
+            "Backend.webhook_dispatch.slack"
+         ],
+         [
+            "Backend.scheduler.heal_loop",
+            "Backend.healing_engine.tick"
+         ],
+         [
+            "Backend.scheduler.heal_loop",
+            "Backend.cx_tracker.sample"
+         ],
+         [
+            "Frontend.api_calls.GET",
+            "API.auth.login"
+         ],
+         [
+            "Frontend.api_calls.GET",
+            "API.catalog.list"
+         ],
+         [
+            "Frontend.api_calls.GET",
+            "API.cart.get"
+         ],
+         [
+            "Frontend.api_calls.GET",
+            "API.checkout.start"
+         ],
+         [
+            "Frontend.api_calls.GET",
+            "API.search.query"
+         ],
+         [
+            "Frontend.rum_beacon.tick",
+            "API.admin.products_create"
+         ],
+         [
+            "API.auth.login",
+            "Cache.session.get"
+         ],
+         [
+            "API.catalog.list",
+            "Cache.product.get"
+         ],
+         [
+            "API.catalog.list",
+            "Cache.search_index.lookup"
+         ],
+         [
+            "API.checkout.start",
+            "Cache.price.get"
+         ],
+         [
+            "API.cart.get",
+            "Cache.cart_state.get"
+         ],
+         [
+            "API.search.query",
+            "Cache.search_index.lookup"
+         ],
+         [
+            "API.rate_limiter.check",
+            "Cache.rate_limit_buckets.tick"
+         ],
+         [
+            "API.admin.products_create",
+            "Cache.feature_flags.read"
+         ],
+         [
+            "API.auth.login",
+            "DB.users.find_by_email"
+         ],
+         [
+            "API.catalog.list",
+            "DB.products.find"
+         ],
+         [
+            "API.orders.create",
+            "DB.orders.insert"
+         ],
+         [
+            "API.cart.get",
+            "DB.carts.find"
+         ],
+         [
+            "API.admin.products_create",
+            "DB.audit_log.append"
+         ],
+         [
+            "API.recommendations.related",
+            "DB.products.find"
+         ],
+         [
+            "API.checkout.start",
+            "Queue.orders.publish"
+         ],
+         [
+            "API.orders.create",
+            "Queue.fulfillment.publish"
+         ],
+         [
+            "API.admin.products_create",
+            "Queue.email.publish"
+         ],
+         [
+            "Cache.product.get",
+            "DB.products.find"
+         ],
+         [
+            "Cache.cart_state.get",
+            "DB.carts.find"
+         ],
+         [
+            "Queue.orders.publish",
+            "Backend.sri_engine.compute"
+         ],
+         [
+            "Queue.metrics.publish",
+            "Backend.analytics.rollup"
+         ],
+         [
+            "Queue.healing.publish",
+            "Backend.healing_engine.tick"
+         ],
+         [
+            "Backend.analytics.rollup",
+            "DB.metrics.append"
+         ],
+         [
+            "Backend.cx_tracker.sample",
+            "DB.metrics.append"
+         ],
+         [
+            "Backend.webhook_dispatch.slack",
+            "DB.audit_log.append"
+         ],
+         [
+            "Backend.attribution.decompose",
+            "Cache.product.get"
+         ]
+      ],
+      "endpoints" : {
+         "API.admin" : [
+            "API.admin.products_create",
+            "API.admin.orders_list",
+            "API.admin.webhooks"
+         ],
+         "API.auth" : [
+            "API.auth.login",
+            "API.auth.register",
+            "API.auth.me",
+            "API.auth.logout"
+         ],
+         "API.cart" : [
+            "API.cart.get",
+            "API.cart.add",
+            "API.cart.update",
+            "API.cart.remove"
+         ],
+         "API.catalog" : [
+            "API.catalog.list",
+            "API.catalog.detail",
+            "API.catalog.categories"
+         ],
+         "API.checkout" : [
+            "API.checkout.start",
+            "API.checkout.pay",
+            "API.checkout.confirm"
+         ],
+         "API.orders" : [
+            "API.orders.create",
+            "API.orders.list",
+            "API.orders.detail"
+         ],
+         "API.rate_limiter" : [
+            "API.rate_limiter.check",
+            "API.rate_limiter.tick"
+         ],
+         "API.recommendations" : [
+            "API.recommendations.related",
+            "API.recommendations.trending"
+         ],
+         "API.search" : [
+            "API.search.query",
+            "API.search.suggest"
+         ],
+         "Backend.analytics" : [
+            "Backend.analytics.rollup"
+         ],
+         "Backend.attribution" : [
+            "Backend.attribution.decompose"
+         ],
+         "Backend.cx_tracker" : [
+            "Backend.cx_tracker.sample",
+            "Backend.cx_tracker.percentiles"
+         ],
+         "Backend.fea_engine" : [
+            "Backend.fea_engine.solve",
+            "Backend.fea_engine.cascade"
+         ],
+         "Backend.healing_engine" : [
+            "Backend.healing_engine.tick",
+            "Backend.healing_engine.execute",
+            "Backend.healing_engine.adapt"
+         ],
+         "Backend.scheduler" : [
+            "Backend.scheduler.heal_loop",
+            "Backend.scheduler.propagation_loop"
+         ],
+         "Backend.sri_engine" : [
+            "Backend.sri_engine.compute",
+            "Backend.sri_engine.trend"
+         ],
+         "Backend.webhook_dispatch" : [
+            "Backend.webhook_dispatch.slack",
+            "Backend.webhook_dispatch.discord"
+         ],
+         "Cache.cart_state" : [
+            "Cache.cart_state.get",
+            "Cache.cart_state.set"
+         ],
+         "Cache.feature_flags" : [
+            "Cache.feature_flags.read"
+         ],
+         "Cache.price" : [
+            "Cache.price.get"
+         ],
+         "Cache.product" : [
+            "Cache.product.get",
+            "Cache.product.set"
+         ],
+         "Cache.rate_limit_buckets" : [
+            "Cache.rate_limit_buckets.tick"
+         ],
+         "Cache.search_index" : [
+            "Cache.search_index.lookup",
+            "Cache.search_index.rebuild"
+         ],
+         "Cache.session" : [
+            "Cache.session.get",
+            "Cache.session.set",
+            "Cache.session.evict"
+         ],
+         "DB.audit_log" : [
+            "DB.audit_log.append"
+         ],
+         "DB.carts" : [
+            "DB.carts.find",
+            "DB.carts.update",
+            "DB.carts.upsert"
+         ],
+         "DB.inventory" : [
+            "DB.inventory.decrement",
+            "DB.inventory.read"
+         ],
+         "DB.metrics" : [
+            "DB.metrics.append",
+            "DB.metrics.aggregate"
+         ],
+         "DB.orders" : [
+            "DB.orders.insert",
+            "DB.orders.find_by_user",
+            "DB.orders.find_by_id",
+            "DB.orders.update_status"
+         ],
+         "DB.products" : [
+            "DB.products.find",
+            "DB.products.by_id",
+            "DB.products.by_category"
+         ],
+         "DB.replica" : [
+            "DB.replica.read"
+         ],
+         "DB.users" : [
+            "DB.users.find_by_email",
+            "DB.users.insert",
+            "DB.users.update_prefs"
+         ],
+         "Frontend.api_calls" : [
+            "Frontend.api_calls.GET",
+            "Frontend.api_calls.POST",
+            "Frontend.api_calls.WS"
+         ],
+         "Frontend.assets" : [
+            "Frontend.assets.js_bundle",
+            "Frontend.assets.css",
+            "Frontend.assets.images"
+         ],
+         "Frontend.js_errors" : [
+            "Frontend.js_errors.uncaught",
+            "Frontend.js_errors.unhandled_rejection"
+         ],
+         "Frontend.page_load" : [
+            "Frontend.page_load.home",
+            "Frontend.page_load.products",
+            "Frontend.page_load.cart",
+            "Frontend.page_load.checkout"
+         ],
+         "Frontend.render" : [
+            "Frontend.render.tree",
+            "Frontend.render.commit"
+         ],
+         "Frontend.router" : [
+            "Frontend.router.transition"
+         ],
+         "Frontend.rum_beacon" : [
+            "Frontend.rum_beacon.tick"
+         ],
+         "Frontend.state_store" : [
+            "Frontend.state_store.cart",
+            "Frontend.state_store.auth"
+         ],
+         "Queue.dead_letter" : [
+            "Queue.dead_letter.append"
+         ],
+         "Queue.email" : [
+            "Queue.email.publish",
+            "Queue.email.consume"
+         ],
+         "Queue.fulfillment" : [
+            "Queue.fulfillment.publish",
+            "Queue.fulfillment.consume"
+         ],
+         "Queue.healing" : [
+            "Queue.healing.publish",
+            "Queue.healing.consume"
+         ],
+         "Queue.metrics" : [
+            "Queue.metrics.publish",
+            "Queue.metrics.consume"
+         ],
+         "Queue.orders" : [
+            "Queue.orders.publish",
+            "Queue.orders.consume"
+         ]
+      },
+      "fine_edges" : [
+         [
+            "Frontend.page_load",
+            "Frontend.assets"
+         ],
+         [
+            "Frontend.assets",
+            "Frontend.render"
+         ],
+         [
+            "Frontend.render",
+            "Frontend.router"
+         ],
+         [
+            "Frontend.router",
+            "Frontend.state_store"
+         ],
+         [
+            "Frontend.state_store",
+            "Frontend.api_calls"
+         ],
+         [
+            "Frontend.api_calls",
+            "Frontend.js_errors"
+         ],
+         [
+            "Frontend.render",
+            "Frontend.rum_beacon"
+         ],
+         [
+            "Frontend.api_calls",
+            "Frontend.rum_beacon"
+         ],
+         [
+            "API.auth",
+            "API.catalog"
+         ],
+         [
+            "API.auth",
+            "API.cart"
+         ],
+         [
+            "API.catalog",
+            "API.cart"
+         ],
+         [
+            "API.catalog",
+            "API.search"
+         ],
+         [
+            "API.cart",
+            "API.checkout"
+         ],
+         [
+            "API.checkout",
+            "API.orders"
+         ],
+         [
+            "API.catalog",
+            "API.recommendations"
+         ],
+         [
+            "API.recommendations",
+            "API.search"
+         ],
+         [
+            "API.admin",
+            "API.catalog"
+         ],
+         [
+            "API.admin",
+            "API.orders"
+         ],
+         [
+            "API.rate_limiter",
+            "API.auth"
+         ],
+         [
+            "API.rate_limiter",
+            "API.checkout"
+         ],
+         [
+            "Cache.session",
+            "Cache.product"
+         ],
+         [
+            "Cache.product",
+            "Cache.price"
+         ],
+         [
+            "Cache.product",
+            "Cache.search_index"
+         ],
+         [
+            "Cache.cart_state",
+            "Cache.session"
+         ],
+         [
+            "Cache.rate_limit_buckets",
+            "Cache.session"
+         ],
+         [
+            "Cache.feature_flags",
+            "Cache.session"
+         ],
+         [
+            "DB.users",
+            "DB.orders"
+         ],
+         [
+            "DB.products",
+            "DB.orders"
+         ],
+         [
+            "DB.products",
+            "DB.inventory"
+         ],
+         [
+            "DB.orders",
+            "DB.metrics"
+         ],
+         [
+            "DB.carts",
+            "DB.orders"
+         ],
+         [
+            "DB.carts",
+            "DB.users"
+         ],
+         [
+            "DB.audit_log",
+            "DB.orders"
+         ],
+         [
+            "DB.audit_log",
+            "DB.users"
+         ],
+         [
+            "DB.replica",
+            "DB.users"
+         ],
+         [
+            "DB.replica",
+            "DB.products"
+         ],
+         [
+            "DB.replica",
+            "DB.orders"
+         ],
+         [
+            "Queue.orders",
+            "Queue.fulfillment"
+         ],
+         [
+            "Queue.orders",
+            "Queue.email"
+         ],
+         [
+            "Queue.healing",
+            "Queue.metrics"
+         ],
+         [
+            "Queue.fulfillment",
+            "Queue.dead_letter"
+         ],
+         [
+            "Queue.email",
+            "Queue.dead_letter"
+         ],
+         [
+            "Backend.sri_engine",
+            "Backend.healing_engine"
+         ],
+         [
+            "Backend.healing_engine",
+            "Backend.fea_engine"
+         ],
+         [
+            "Backend.fea_engine",
+            "Backend.analytics"
+         ],
+         [
+            "Backend.sri_engine",
+            "Backend.analytics"
+         ],
+         [
+            "Backend.sri_engine",
+            "Backend.attribution"
+         ],
+         [
+            "Backend.attribution",
+            "Backend.analytics"
+         ],
+         [
+            "Backend.cx_tracker",
+            "Backend.analytics"
+         ],
+         [
+            "Backend.healing_engine",
+            "Backend.webhook_dispatch"
+         ],
+         [
+            "Backend.scheduler",
+            "Backend.healing_engine"
+         ],
+         [
+            "Backend.scheduler",
+            "Backend.cx_tracker"
+         ],
+         [
+            "Frontend.api_calls",
+            "API.auth"
+         ],
+         [
+            "Frontend.api_calls",
+            "API.catalog"
+         ],
+         [
+            "Frontend.api_calls",
+            "API.cart"
+         ],
+         [
+            "Frontend.api_calls",
+            "API.checkout"
+         ],
+         [
+            "Frontend.api_calls",
+            "API.search"
+         ],
+         [
+            "Frontend.rum_beacon",
+            "API.admin"
+         ],
+         [
+            "API.auth",
+            "Cache.session"
+         ],
+         [
+            "API.catalog",
+            "Cache.product"
+         ],
+         [
+            "API.catalog",
+            "Cache.search_index"
+         ],
+         [
+            "API.checkout",
+            "Cache.price"
+         ],
+         [
+            "API.cart",
+            "Cache.cart_state"
+         ],
+         [
+            "API.search",
+            "Cache.search_index"
+         ],
+         [
+            "API.rate_limiter",
+            "Cache.rate_limit_buckets"
+         ],
+         [
+            "API.admin",
+            "Cache.feature_flags"
+         ],
+         [
+            "API.auth",
+            "DB.users"
+         ],
+         [
+            "API.catalog",
+            "DB.products"
+         ],
+         [
+            "API.orders",
+            "DB.orders"
+         ],
+         [
+            "API.cart",
+            "DB.carts"
+         ],
+         [
+            "API.admin",
+            "DB.audit_log"
+         ],
+         [
+            "API.recommendations",
+            "DB.products"
+         ],
+         [
+            "API.checkout",
+            "Queue.orders"
+         ],
+         [
+            "API.orders",
+            "Queue.fulfillment"
+         ],
+         [
+            "API.admin",
+            "Queue.email"
+         ],
+         [
+            "Cache.product",
+            "DB.products"
+         ],
+         [
+            "Cache.cart_state",
+            "DB.carts"
+         ],
+         [
+            "Queue.orders",
+            "Backend.sri_engine"
+         ],
+         [
+            "Queue.metrics",
+            "Backend.analytics"
+         ],
+         [
+            "Queue.healing",
+            "Backend.healing_engine"
+         ],
+         [
+            "Backend.analytics",
+            "DB.metrics"
+         ],
+         [
+            "Backend.cx_tracker",
+            "DB.metrics"
+         ],
+         [
+            "Backend.webhook_dispatch",
+            "DB.audit_log"
+         ],
+         [
+            "Backend.attribution",
+            "Cache.product"
+         ]
+      ],
+      "inter_edges" : [
+         [
+            "Frontend",
+            "API"
+         ],
+         [
+            "API",
+            "Cache"
+         ],
+         [
+            "API",
+            "DB"
+         ],
+         [
+            "API",
+            "Queue"
+         ],
+         [
+            "Cache",
+            "DB"
+         ],
+         [
+            "Queue",
+            "Backend"
+         ],
+         [
+            "Backend",
+            "DB"
+         ],
+         [
+            "Backend",
+            "Cache"
+         ]
+      ],
+      "services" : [
+         {
+            "corrective_action" : "rate_limit",
+            "name" : "Frontend",
+            "position" : {
+               "x" : 90,
+               "y" : 80
+            }
+         },
+         {
+            "corrective_action" : "rate_limit",
+            "name" : "API",
+            "position" : {
+               "x" : 300,
+               "y" : 80
+            }
+         },
+         {
+            "corrective_action" : "cache_flush",
+            "name" : "Cache",
+            "position" : {
+               "x" : 110,
+               "y" : 200
+            }
+         },
+         {
+            "corrective_action" : "connection_pool_reset",
+            "name" : "DB",
+            "position" : {
+               "x" : 210,
+               "y" : 340
+            }
+         },
+         {
+            "corrective_action" : "queue_drain",
+            "name" : "Queue",
+            "position" : {
+               "x" : 410,
+               "y" : 340
+            }
+         },
+         {
+            "corrective_action" : "circuit_breaker",
+            "name" : "Backend",
+            "position" : {
+               "x" : 500,
+               "y" : 200
+            }
+         }
+      ],
+      "tier_counts" : {
+         "components" : 46,
+         "endpoints" : 101,
+         "services" : 6
+      },
+      "version" : 2
+   }
+}

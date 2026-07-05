@@ -1,0 +1,244 @@
+\documentclass[conference]{IEEEtran}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{bm}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{siunitx}
+\usepackage{graphicx}
+\usepackage{url}
+\usepackage{cite}
+
+\title{Experimental Setup for a Unified Reliability Model in Distributed Software Systems:\\
+FEA-Inspired Structure, Runtime Dynamics, Operational Time-Warp, and Phase Transitions}
+
+\author{\IEEEauthorblockN{Anand Sunder}
+\IEEEauthorblockA{Manuscript Prepared for Review}}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This paper reformulates a unified reliability framework as an explicit experimental setup for distributed software systems. The objective is to test whether a four-layer model (structural graph operator, runtime state dynamics, operational time-warp, and phase-transition order parameter) improves intervention quality over symptom-driven healing. We define the full state space, control variables, treatment arms, outcome metrics, and statistical analysis plan, and we provide FreshCart-derived calibration anchors (SRI $0.992455$, reliability score $0.9610$, and $363$ historical healing actions). The setup is designed for reproducibility and comparative evaluation, not for claiming that software literally obeys continuum mechanics.
+\end{abstract}
+
+\begin{IEEEkeywords}
+software reliability, distributed systems, resiliency, finite element inspired modeling, control theory, phase transitions, digital twin
+\end{IEEEkeywords}
+
+\section{Introduction}
+Modern cloud-native applications exhibit nonlinear interactions among workload, latency, errors, queueing, and adaptation policies. Existing observability pipelines provide rich metrics, yet operational decision-making often remains heuristic and myopic. This motivates a unified model that preserves mathematical structure while remaining implementation-oriented.
+
+The main contribution is a four-layer formulation that unifies topology-aware stress modeling, runtime state evolution, operational aging, and phase-aware control. The framework is calibrated using FreshCart runtime measurements and correction history, showing how measured data can instantiate model states, transitions, and objectives.
+
+\section{Related Foundations}
+The proposed framework is informed by four established directions: finite element style structural abstractions \cite{zienkiewicz2005fem}, nonlinear and optimal control \cite{khalil2002nonlinear,bertsekas1995dynamic}, graph spectral diagnostics \cite{chung1997spectral}, and reliability engineering for software operations \cite{google2016sre}. We combine these perspectives in a software-specific state-space formulation.
+
+Within this context, Sunder's recent software-physics line of work is directly relevant to spectral resilience and phase-aware modeling in distributed systems \cite{sunder2025spectral,sunder2026fem,sunder2026part2,sunder2026unified}. These papers motivate the use of graph-derived resilience indices, operational energy/debt formulations, and structured phase-transition analysis for runtime control.
+
+\section{Experimental Setup}
+\subsection{Research Questions and Hypotheses}
+The experiment is designed to evaluate whether the proposed four-layer model improves control quality relative to symptom-driven healing.
+
+\textbf{RQ1:} Does model-based healing improve resilience outcomes (SRI, availability, error rate) under identical load conditions?
+
+\textbf{RQ2:} Does model-based healing reduce operational aging, measured through the time-warp term, compared with reactive baselines?
+
+\textbf{RQ3:} Are gains concentrated in structurally stressed regions (for example API, Backend, Frontend) rather than uniformly across all services?
+
+The primary hypotheses are:
+\begin{itemize}
+\item \textbf{H1:} Structural interventions outperform repeated symptom-only interventions on composite resilience.
+\item \textbf{H2:} The time-warp penalty decreases under optimized policies.
+\item \textbf{H3:} Local phase stability improves near weak or saturated edges.
+\end{itemize}
+
+\subsection{System Under Test and Topology Scope}
+The system under test is the FreshCart distributed topology with six service-level nodes (Frontend, API, Cache, DB, Queue, Backend), inter-service dependencies, and endpoint-level refinement. Calibration anchors from the current runtime snapshot are:
+\begin{itemize}
+\item SRI $=0.992455$.
+\item Reliability score $=0.9610$.
+\item Historical healing actions $=363$.
+\item Weak edge: API $\rightarrow$ Queue.
+\end{itemize}
+
+\subsection{Model Specification Used in the Experiment}
+\textbf{Structural layer:}
+\begin{equation}
+\mathbf{K}=\mathbf{K}_{\mathrm{compute}}+\mathbf{K}_{\mathrm{cache}}+\mathbf{K}_{\mathrm{database}}+\mathbf{K}_{\mathrm{network}},
+\label{eq:K}
+\end{equation}
+\begin{equation}
+\mathbf{K}\,\mathbf{u}(t)=\mathbf{F}(t),
+\label{eq:equilibrium}
+\end{equation}
+where $\mathbf{F}(t)$ is observed runtime load and $\mathbf{u}(t)$ is degradation displacement.
+
+\textbf{Runtime state layer:}
+\begin{equation}
+\mathbf{x}(t)=
+\begin{bmatrix}
+L(t) & S(t) & E(t) & R_d(t) & \mathrm{SRI}(t) & A(t)
+\end{bmatrix}^{\top},
+\label{eq:state}
+\end{equation}
+\begin{equation}
+\dot{\mathbf{x}}=\mathbf{f}(\mathbf{x},\mathbf{u}_h,\mathbf{d}).
+\label{eq:dynamics}
+\end{equation}
+
+\textbf{Time-warp layer:}
+\begin{equation}
+\tau(t)=\int_0^t w(\xi)\,d\xi, \quad
+w(t)=1+\alpha S(t)+\beta E(t)+\gamma L(t).
+\label{eq:warp}
+\end{equation}
+
+\textbf{Phase layer:}
+\begin{equation}
+\Phi(t)=\lambda_1\,\mathrm{SRI}(t)+\lambda_2 A(t)+\lambda_3(1-S(t))
++\lambda_4(1-E(t)) - \lambda_5 R_d(t).
+\label{eq:phi}
+\end{equation}
+with phase bins: Stable ($\Phi>0.9$), Adaptive ($0.8<\Phi\le0.9$), Transitional ($0.6<\Phi\le0.8$), Saturated ($0.4<\Phi\le0.6$), Critical ($\Phi\le0.4$).
+
+\subsection{Treatment Arms and Control Policies}
+Each experimental run is assigned to one of four arms:
+\begin{itemize}
+\item \textbf{A0 Baseline-No-Healing:} observe natural degradation and recovery.
+\item \textbf{A1 Reactive-Symptom:} threshold-based actions (for example queue drain, rate limiting) without structural optimization.
+\item \textbf{A2 Structural-Model-Based:} actions selected to modify stiffness/coupling (for example cache scale-out, DB replica scale-out).
+\item \textbf{A3 Hybrid-Multi-Objective:} policy from
+\begin{equation}
+\mathbf{u}_h^*=\arg\min_{\mathbf{u}_h}
+\left(\alpha J_{\mathrm{latency}}+\beta J_{\mathrm{stress}}+\gamma J_{\mathrm{cost}}+\delta J_{\mathrm{risk}}+\epsilon J_{\mathrm{warp}}\right).
+\label{eq:objective}
+\end{equation}
+\end{itemize}
+
+\subsection{Input Workload and Disturbance Protocol}
+Workloads are generated in fixed phases per trial: warm-up, steady load, burst load, dependency stress injection, and recovery. Disturbance scheduling is identical across arms to ensure causal comparability. Random seeds are fixed per trial block, and arm order is randomized.
+
+\subsection{Observed Variables and Endpoints}
+\textbf{Primary endpoints:}
+\begin{itemize}
+\item Mean and worst-window SRI.
+\item Availability and error-rate reduction.
+\item Time in Stable/Adaptive phases.
+\item Operational aging accumulation $\tau(t)-t$.
+\end{itemize}
+
+\textbf{Secondary endpoints:}
+\begin{itemize}
+\item Action efficiency (improvement per action and per cost unit).
+\item Weak-edge stress redistribution (especially API $\rightarrow$ Queue).
+\item Local node improvements for API, Backend, and Frontend.
+\end{itemize}
+
+\begin{table}[t]
+\caption{Initial Calibration Snapshot (FreshCart)}
+\label{tab:nodes}
+\centering
+\footnotesize
+\begin{tabular}{lcccc}
+\toprule
+Node & Latency (ms) & Saturation & Functional & Composite \\
+\midrule
+API      & 26.216 & 1.0000 & 0.9607 & 0.6966 \\
+Cache    & 1.332  & 0.1081 & 0.9980 & 0.9691 \\
+DB       & 3.627  & 0.0100 & 0.9946 & 0.9927 \\
+Queue    & 2.554  & 0.3000 & 0.9962 & 0.9157 \\
+Backend  & 4.662  & 1.0000 & 0.9884 & 0.7209 \\
+Frontend & 63.503 & 1.0000 & 0.9047 & 0.6490 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Statistical Analysis Plan}
+For each endpoint, we report effect size versus A1 (reactive baseline), confidence intervals, and significance testing across repeated trials. Recommended tests are: paired $t$-test or Wilcoxon signed-rank (depending on normality), repeated-measures ANOVA or Friedman test for multi-arm comparison, and bootstrap confidence intervals for non-Gaussian metrics.
+
+Time-series comparisons use aligned windows and blocked resampling to account for temporal autocorrelation. Multiple comparisons are corrected with Holm-Bonferroni.
+
+\subsection{Power Analysis and Sample Size Planning}
+To avoid underpowered comparisons, each treatment arm is repeated over independent trial windows. Let $\Delta$ denote the primary effect on composite resilience versus A1 and let $\sigma_\Delta$ be the paired-trial standard deviation. The standardized effect is
+\begin{equation}
+d = \frac{\Delta}{\sigma_\Delta}.
+\label{eq:effectsize}
+\end{equation}
+For two-sided testing with significance level $\alpha_s$ and power $(1-\beta_s)$, a practical planning approximation for per-arm sample size is
+\begin{equation}
+n \approx 2\left(\frac{z_{1-\alpha_s/2} + z_{1-\beta_s}}{d}\right)^2.
+\label{eq:power}
+\end{equation}
+In this study design, we target $\alpha_s=0.05$ and power $0.8$, with adaptive re-estimation after pilot runs if empirical variance differs from planning assumptions.
+
+\subsection{Preregistered Decision Criteria}
+To reduce researcher degrees of freedom, we define acceptance criteria before full runs:
+\begin{itemize}
+\item \textbf{C1 (Primary):} A3 must improve mean SRI and reduce operational aging $\tau(t)-t$ versus A1 with corrected $p<0.05$.
+\item \textbf{C2 (Safety):} A3 must not reduce availability relative to A1.
+\item \textbf{C3 (Locality):} At least one saturated or weak region (API, Backend, Frontend, or API $\rightarrow$ Queue) must show statistically significant improvement.
+\item \textbf{C4 (Efficiency):} Gain-per-action must be greater in A2/A3 than in A1.
+\end{itemize}
+
+\subsection{Reproducibility and Artifacts}
+The setup is reproducible with fixed seeds, versioned workload scripts, and exported artifacts per trial: runtime snapshots, bounded node reports, correction-factor tables, and action logs. The FreshCart report values above define the initial condition; subsequent runs vary only controlled factors.
+
+\subsection{Implementation and Reporting Checklist}
+For IEEE-grade reproducibility, each experiment bundle must include:
+\begin{itemize}
+\item Commit hash and configuration manifest (weights, thresholds, and control coefficients).
+\item Workload seed, disturbance schedule, and arm assignment order.
+\item Raw time-series telemetry at service and endpoint tiers.
+\item Action timeline with trigger reason, cooldown state, and estimated cost.
+\item Derived artifacts: bounded model table, phase timeline, and correction-factor summary.
+\item Analysis notebook/script producing all tables and significance outputs from raw logs.
+\end{itemize}
+
+\section{Threats to Validity}
+\textbf{Internal validity:} policy interactions can confound attribution when multiple actions trigger concurrently. We mitigate by logging causal action windows and using ablation runs.
+
+\textbf{Construct validity:} FEA terms (stiffness, displacement) are engineering abstractions, not literal physical states.
+
+\textbf{External validity:} effect sizes may vary with topology depth, traffic skew, and cloud environment. Multi-system replication is required.
+
+\section{Conclusion}
+This manuscript now specifies a complete experimental setup for evaluating a unified reliability model in distributed software systems. The formulation defines hypotheses, control arms, mathematical state representation, workload protocol, endpoints, and statistical analysis. FreshCart values provide a concrete initialization and calibration basis for repeatable comparative experiments.
+
+\begin{thebibliography}{99}
+
+\bibitem{zienkiewicz2005fem}
+O. C. Zienkiewicz and R. L. Taylor, \emph{The Finite Element Method for Solid and Structural Mechanics}, 6th ed. Oxford, U.K.: Elsevier, 2005.
+
+\bibitem{khalil2002nonlinear}
+H. K. Khalil, \emph{Nonlinear Systems}, 3rd ed. Upper Saddle River, NJ, USA: Prentice Hall, 2002.
+
+\bibitem{bertsekas1995dynamic}
+D. P. Bertsekas, \emph{Dynamic Programming and Optimal Control}, vol. 1. Belmont, MA, USA: Athena Scientific, 1995.
+
+\bibitem{chung1997spectral}
+F. R. K. Chung, \emph{Spectral Graph Theory}. Providence, RI, USA: American Mathematical Society, 1997.
+
+\bibitem{google2016sre}
+B. Beyer, C. Jones, J. Petoff, and N. R. Murphy, Eds., \emph{Site Reliability Engineering: How Google Runs Production Systems}. Sebastopol, CA, USA: O'Reilly Media, 2016.
+
+\bibitem{lee2015cps}
+E. A. Lee, "The past, present and future of cyber-physical systems: A focus on models," \emph{Sensors}, vol. 15, no. 3, pp. 4837--4869, 2015.
+
+\bibitem{tao2019digitaltwin}
+F. Tao, H. Zhang, A. Liu, and A. Y. C. Nee, "Digital twin in industry: State-of-the-art," \emph{IEEE Trans. Ind. Informat.}, vol. 15, no. 4, pp. 2405--2415, Apr. 2019.
+
+\bibitem{sunder2025spectral}
+A. Sunder, "Spectral Signatures of Distributed Software Systems: Eigenvalue Profiling for Enterprise-Scale Proactive Resilience Engineering," \emph{Asian Journal of Mathematical Sciences}, vol. 9, no. 3, 2025, doi: 10.22377/ajms.v9i03.618.
+
+\bibitem{sunder2026fem}
+A. Sunder, "Towards a New Physics of Software Systems: A Finite Element and Spectral Framework for Distributed Architectures," \emph{International Journal of Science and Research}, Mar. 2026. [Online]. Available: \url{https://www.ijsr.net/getabstract.php?paperid=MR26323100538}
+
+\bibitem{sunder2026part2}
+A. Sunder, "Physics of Software Systems Part II: Stability Potential, Compute Energy, and Operational Cost in Enterprise Systems," SSRN preprint, 2026. [Online]. Available: \url{https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6580058}
+
+\bibitem{sunder2026unified}
+A. Sunder, "A Unified View of Software Reliability Engineering," SSRN working paper, 2026.
+
+\end{thebibliography}
+
+\end{document}

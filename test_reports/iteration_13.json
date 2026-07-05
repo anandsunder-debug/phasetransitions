@@ -1,0 +1,43 @@
+{
+  "summary": "Iteration 13 backend + frontend testing of FEA topology granularity (service vs component, hierarchical drill-down). 18/18 backend pytest cases pass. Frontend Playwright run validates the complete flow: admin login → System Health tab → fea-heatmap renders → Expand All triggers /api/healing/fea?granularity=component → all 4 spot-checked sub-component testids (API.auth, Cache.session, DB.users, Backend.sri_engine) render → Collapse-all appears → zoom-in/reset modify viewBox correctly → double-click on a service node expands only that service in-place and a second double-click collapses it. Backward-compat preserved: default granularity returns flat 5-service list with NO `components` key on elements; invalid value (foo) silently falls back to 'service'. Domain mapping is exact (API:{auth,catalog,cart,checkout,orders}; Cache:{session,product,price}; DB:{users,products,orders,metrics}; Queue:{orders,healing,metrics}; Backend:{sri_engine,healing_engine,fea_engine,analytics}; mesh_size_fine=19). Component contract verified — every component carries von_mises_stress, strain_energy, yield_exceeded(bool), load, displacement, corrective_action, metrics{latency_ms,error_rate_pct,saturation_pct}. Under load von_mises_stress > 0 confirmed. All regression endpoints (/api/healing/topology?granularity=fine, /metrics/real, /metrics/reliability, /metrics/business, /healing/status, /auth/login, /products) still return 200.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Dashboard / System Health (and other tabs that render Recharts ResponsiveContainers)",
+        "issues": [
+          "Recharts emits repeated 'width(-1) and height(-1) of chart should be greater than 0' console warnings on initial dashboard mount. Pre-existing (not introduced by this iteration), but worth a follow-up: parent container has zero/undefined height during first paint. Consider setting an explicit minHeight on the chart wrappers.",
+          "WebSocket connection to wss://.../ws/alerts fails on dashboard mount (warning only, dashboard still functions). Likely a Kubernetes ingress WS rewrite issue — not blocking but should be tracked."
+        ]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration13_fea_topology.py",
+    "/app/test_reports/pytest/iteration13_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py is now ~3611 lines and continues to grow (FEA hierarchical block alone added ~70 lines at the route layer). The granularity=component branch at lines 3181-3233 mixes data-shaping (parent grouping, intra-edge filtering, derived counts) with the route handler — extract into a healing/fea_hierarchical.py module with build_component_view(fea, fine) so the route stays thin.",
+    "Line 3196-3197: `von_mises_stress` and `service_pressure` are duplicated on each component (same value), as are `strain_energy` and `health_debt`. Pick one canonical name and remove the alias to keep payloads lean and avoid client-side ambiguity about which is authoritative.",
+    "Line 3186 `fine_threshold = fine.get('failure_threshold', fea.get('yield_threshold', 0.1))` — the fallback chain hard-codes 0.1; better to expose this via a healing config constant so service/component thresholds stay aligned.",
+    "Sub-service mapping at server.py:2584-2590 is duplicated knowledge that the frontend implicitly expects (testids fea-component-API.auth etc.). Expose the mapping via an endpoint (e.g. GET /api/healing/topology/schema) rather than hard-coding it on both sides — currently any rename in backend silently breaks the frontend testids.",
+    "fine_metrics derivation (line ~2613-2620) divides parent traffic uniformly across children with random.uniform(0.8,1.2) noise. This produces non-deterministic von_mises_stress per request — fine for visualization but flaky for any downstream alerting/RCA that depends on per-component thresholds. Consider seeding the RNG per (parent, child, minute_bucket) for stability.",
+    "FEATopologyHeatMap.jsx has no unit-test coverage; the component owns pan/zoom/expand state in local React state — would benefit from a small jest test for the toggle behaviour to lock in the inline-expansion contract."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration13_fea_topology.py (new)"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "admin@freshcart.com / admin123 (from /app/memory/test_credentials.md)",
+  "seed_data_creation": "30 GET /api/products requests + 2s sleep before component-stress assertion to guarantee non-zero von_mises_stress.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Run `pytest /app/backend/tests/test_iteration13_fea_topology.py -v` for full FEA hierarchical regression. Frontend smoke: login admin@freshcart.com/admin123, click 'System Health' tab, click Expand All, assert sub-component testids appear. The component_yield_threshold and per-component von_mises_stress are stochastic (random.uniform(0.8,1.2) on each call) so do NOT assert exact numeric values across calls — assert >0 and bounded. Mesh size is fixed at 19. Iteration 12 adaptive-healing tests still pass alongside this run.",
+  "rca of the issue": "N/A — feature works as specified end-to-end. Spec items mapped 1:1 to passing tests: backward-compat flat shape (TestFEAServiceGranularity), hierarchical component shape & contract (TestFEAComponentGranularity::test_component_response_shape, test_component_field_contract), domain mapping (test_domain_specific_component_mapping), invalid-fallback (test_invalid_granularity_defaults_to_service), under-load non-trivial stress (test_under_load_nontrivial_stress), regression endpoints (TestRegression). Frontend Playwright run validates fea-heatmap render, Expand All network call, sub-component testids, double-click in-place toggle, viewBox zoom/reset, and collapse-all visibility."
+}

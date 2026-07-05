@@ -1,0 +1,48 @@
+{
+  "summary": "Iteration 20 — Backend microservice split validation. Main app (server.py, ~667 lines) on :8001 owns e-commerce + proxy + event emission; obs (obs_server.py, ~4783 lines) on :8002 owns metrics/healing/CX/alerts/RUM. Pytest 44/44 PASSED, 1 SKIPPED (external WS through k8s ingress not supported in preview env — application-layer WS proxy works fine). Validated: (a) Health on main_app (/api/health, /health) and obs (localhost:8002/health). (b) E-commerce: /api/products (returns >=1), /api/products/{id}, /api/categories, /api/auth/login (admin cookie), /api/auth/me, /api/cart/add+GET+/api/cart/clear, /api/orders GET, /api/admin/orders (admin only). (c) Proxy correctness: all 21 GET endpoints under /api/metrics/*, /api/healing/*, /api/cx/metrics, /api/alerts return 200 JSON via main_app:8001; topology/schema body shape (services list of 6) identical between direct obs and proxied. (d) Proxied POST: /api/cx/synthetic-user/run, /api/healing/fault-propagation source='API', /api/rum/beacon (ok=true). (e) Auth cookie preservation through proxy: /api/admin/webhooks/status (200 with admin cookie), /api/admin/webhooks/test (401 anon, NOT 401 with admin cookie). (f) Event emission round-trip: 15× /api/products → API traffic on /api/metrics/real grew; 3× POST /api/cart/add → funnel.add_to_cart counter incremented through /api/internal/events/business. (g) WS proxy validated against ws://localhost:8001/ws/alerts — received history alerts JSON from obs. (h) Frontend dashboard renders live data via proxy: SRI 0.983-0.985, Golden Signals (latency 44-64ms, traffic 169-404req, errors ~1%, saturation 28-52%), Customer Experience (Apdex 0.97-0.98, P50=3ms, availability 98.7%), SRI Trend chart populated, critical alert banners flow through. Login admin@freshcart.com/admin123 works.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/ws/alerts (external URL only)", "issue": "WebSocket connection over wss://<public ingress URL>/ws/alerts fails with 'closed before connection is established' / handshake timeout. Browser console confirms. App-layer proxy is fine (ws://localhost:8001/ws/alerts works end-to-end into obs). This is a k8s ingress preview-env limitation, not a code bug; in production the ingress must permit Upgrade: websocket. Dashboard still works because data uses polling REST."},
+      {"endpoint": "GET /api/admin/products", "issue": "Spec lists GET /api/admin/products but only POST /api/admin/products exists. If admin product listing is needed, list is currently obtained via /api/products. Consider exposing GET if admin-only filters are planned."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {"flow": "Real-time alert WS", "issue": "DashboardPage attempts wss to REACT_APP_BACKEND_URL but external ingress times out. Live alert push is degraded; polling fallback keeps panels populated.", "affected_selectors": ["wss://.../ws/alerts"]}
+    ],
+    "design_issues": [
+      {"screen": "Dashboard Overview charts", "issues": ["Recharts emits 'width(-1) and height(-1) of chart should be greater than 0' warnings (~6 times) for ResponsiveContainer children. Likely a parent flexbox with minHeight unset. Cosmetic — charts still render once size is determined."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration20_microservice_split.py",
+    "/app/test_reports/pytest/iteration20_results.xml"
+  ],
+  "action_items": [
+    "Verify production ingress (nginx-ingress / cloud LB) is configured to forward HTTP Upgrade for /ws/alerts. In preview env this fails so live-alert WS is broken end-to-end from browser; polling masks the issue.",
+    "(Optional) Add GET /api/admin/products to match spec (currently only POST exists). Or remove from spec.",
+    "(Minor) Fix Recharts ResponsiveContainer parent sizing (minWidth/minHeight) to silence width(-1)/height(-1) warnings on Dashboard Overview tab.",
+    "(Hardening, carry-over from iter 19) Add ±jitter on browser RUM beacon setInterval and a server-side rate-limit on POST /api/rum/beacon (still unauthenticated by design)."
+  ],
+  "critical_code_review_comments": [
+    "server.py:489 — catch-all proxy is registered on api_router with path '/{full_path:path}'. Because of FastAPI route matching order, this is correct ONLY because every e-commerce route is registered before include_router. If a future maintainer adds a new e-commerce route AFTER include_router(api_router), it will be shadowed by the catch-all proxy and silently 404 (proxied to obs and rejected). Add an explicit guard or move proxy to a sub-router with prefix dispatch.",
+    "server.py:101 — middleware skips fire-and-forget emit only when path contains '/internal/events/'. But the middleware in main_app should never see /internal/events/* anyway (those live on obs only). The intent comment is correct but the guard is effectively dead code; fine, but worth a comment cleanup.",
+    "server.py:50-54 — single shared httpx.AsyncClient is created lazily on first call. Under cold start with concurrent requests, there's a tiny race that could create two clients (mostly harmless but leaks one). Guard with asyncio.Lock or create on app startup.",
+    "server.py:507-508 — when obs is unreachable, proxy returns 502 with the raw exception string in detail. This could leak internal hostnames/ports (OBS_BASE) to clients. Sanitize the error message in production.",
+    "obs_server.py:1466 (_ingest_request_event) — endpoint accepts arbitrary requests. Since it's bound on port 8002 with no auth, it's only safe because 8002 is not exposed externally. Add a simple shared-secret header (e.g. X-Internal-Token) between main_app and obs to prevent lateral attacks if 8002 is ever exposed.",
+    "obs_server.py:4783 lines — still monolithic. The split moved e-commerce out but obs itself contains SRI engine, FEA engine, healing engine, alert manager, CX tracker, RUM ingest, webhooks. Should be further decomposed into modules (/engines, /routes, /models).",
+    "server.py & obs_server.py both call `client[os.environ['DB_NAME']]` — two separate MongoDB clients to the same DB. Acceptable but ensure connection-pool size on the obs side is sized for the heavier write/query load."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration20_microservice_split.py (new — 45 tests, 44 pass + 1 skipped due to ingress WS limitation, ~30s wall time)"
+  ],
+  "success_rate": {"backend": "100% (44/44 actionable, 1 skipped due to known ingress limitation)", "frontend": "100% (dashboard renders SRI/Golden Signals/CX/Trend live via proxy; admin login works)"},
+  "test_credentials": "admin@freshcart.com / admin123 (from /app/memory/test_credentials.md). httpOnly cookie set on login; preserved through main_app -> obs proxy for /api/admin/webhooks/test.",
+  "seed_data_creation": "Created throwaway TEST_user_<uuid>@example.com via /api/auth/register inside the user_session fixture. No permanent DB pollution beyond a few users with TEST_ prefix.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Run `pytest /app/backend/tests/test_iteration20_microservice_split.py -v --asyncio-mode=auto` (~30s, 45 tests). Validates microservice split end-to-end. Key knowledge: (1) Cart endpoints are /api/cart/add (POST), /api/cart/update (PUT), /api/cart/remove/{pid}, /api/cart/clear (DELETE) — NOT REST resource style on /api/cart. (2) /api/admin/products is POST-only despite spec mentioning GET. (3) External WS through k8s ingress is broken in this preview env; test the WS proxy against ws://localhost:8001/ws/alerts (PASSES) — the external WS test is auto-skipped. (4) Business event /api/internal/events/business is fired by server.py for add_to_cart, checkout_start, order_complete, page_view. Verified by snapshotting /api/metrics/business funnel before/after. (5) Both processes run via supervisor: 'backend' (server.py on 8001) and 'backend_obs' (obs_server.py on 8002). Grafana & InfluxDB are FATAL in preview env — pre-existing, not in scope. (6) Recharts width(-1) warnings on Overview tab are noise.",
+  "rca of the issue": "External-URL WebSocket /ws/alerts failure RCA: Browser console emits 'WebSocket is closed before the connection is established' on wss://<public>/ws/alerts. Reproduced via `websockets.connect(wss://<public>/ws/alerts)` → TimeoutError opening handshake. Reproduced direct → ws://localhost:8001/ws/alerts works and returns alert history from obs. Therefore: (a) FastAPI WS proxy in server.py (lines 514-558) is functionally correct; (b) obs_server.py /ws/alerts (line 2037) is functionally correct; (c) the breakage is the k8s ingress / preview-env routing not forwarding HTTP Upgrade headers for /ws/* — a known limitation of this preview infrastructure. Mitigation: configure ingress annotation 'nginx.ingress.kubernetes.io/proxy-read-timeout' and ensure WebSocket support is enabled in production. Dashboard data is unaffected because all panels poll REST endpoints; WS is only used for push alerts and can be supplemented by polling /api/alerts (already proxied and working)."
+}

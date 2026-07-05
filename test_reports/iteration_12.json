@@ -1,0 +1,44 @@
+{
+  "summary": "Iteration 12 backend testing for adaptive auto-healing. All 17/17 pytest tests passed against the public backend URL. /api/healing and /api/healing/status now report mode='adaptive_auto_healing' and include the adaptation block (exhausted_actions, effective_actions, total_exhausted/effective, stagnation_threshold=0.001, effectiveness_window=5). New /api/healing/adaptation endpoint returns escalation_ladders for all 5 nodes (API ladder is exactly [rate_limit, circuit_breaker, api_error_suppression, cache_flush]), cross_node_map for all 5 nodes, and next_action_per_node resolved via _select_adaptive_action. New action 'api_error_suppression' (target_node=API) is registered. /api/healing/history records carry effectiveness{sri_delta, recent_deltas, is_exhausted} and selection_method (adaptive_escalation observed). triggered_by values containing 'adaptive' (e.g. rca_alert_adaptive, fea_alert_adaptive) are present. /api/healing/rca, /fea, /trend regression checks pass. /api/health returns 200.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "/api/healing/adaptation",
+        "issue": "next_action_per_node mislabels None as 'ALL_EXHAUSTED' when actions are merely on cooldown. _select_adaptive_action returns None for both 'all on cooldown' AND 'all exhausted'; the endpoint cannot distinguish the two. Observed live: total_exhausted=0 yet next_action_per_node['Cache']='ALL_EXHAUSTED' because all 3 cache-ladder actions were on cooldown. Recommend returning 'ALL_ON_COOLDOWN' vs 'ALL_EXHAUSTED' separately, or returning a structured object {selected, reason}."
+      },
+      {
+        "endpoint": "/api/healing/history",
+        "issue": "effectiveness.sri_delta is computed as (post-action SRI - pre-action SRI) within the same execute_action call. With the 10s auto-heal cadence and the way mocked node metrics relax slowly, the very first execution of an action almost always records a delta below stagnation_threshold (0.001). _is_action_exhausted requires effectiveness_window (5) consecutive sub-threshold deltas, so the exhaust path is observable only after >=5 same-action executions — the test suite verifies the data shape but not the live transition to is_exhausted=true. Consider seeding action_effectiveness with a synthetic stagnation case for deterministic verification."
+      }
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_iteration12_adaptive_healing.py",
+    "/app/test_reports/pytest/iteration12_results.xml"
+  ],
+  "action_items": [
+    "(Minor) Distinguish 'ALL_ON_COOLDOWN' from 'ALL_EXHAUSTED' in /api/healing/adaptation.next_action_per_node so consumers can tell apart 'wait briefly' vs 'human intervention required'.",
+    "(Minor) When _select_adaptive_action returns None for ALL nodes (true stagnation), the code already broadcasts 'healing_stagnation' alert via on_alert — verify this is also surfaced on /api/healing overview as a top-level flag (e.g. data.adaptation.stagnant=true) for client visibility."
+  ],
+  "critical_code_review_comments": [
+    "server.py is now 2727 lines — long overdue for modularisation. HealingEngine alone spans ~lines 1400-2200 and contains adaptive selector, FEA, RCA, dip detection, history. Split into healing/engine.py, healing/adaptive_selector.py, healing/fea.py, healing/rca.py.",
+    "_select_adaptive_action conflates cooldown with exhaustion (line 1729-1732). Returning None loses the reason. Refactor to return (action_id_or_none, reason_enum) so /api/healing/adaptation can show accurate next-action state.",
+    "action_effectiveness uses defaultdict(list); list growth is bounded inside execute_action but get_adaptation_status reads via .get() which is fine. However iterating over self.actions (line 1756) misses any action_id in the effectiveness dict that was removed from self.actions — low-risk but worth noting.",
+    "stagnation_threshold (0.001) and effectiveness_window (5) are constants on the instance — expose them via /api/healing/config or env vars so ops can tune without redeploy.",
+    "auto_healing_loop sleep is hardcoded to 10s (line 2199); document or expose as setting. Same magic number appears in /api/healing.engine.loop_interval_s — extract to one constant.",
+    "Cross-node fallback in _select_adaptive_action only tries neighbors' primary action, not the neighbor's full ladder. If the neighbor's primary is on cooldown the cross-node attempt fails silently. Consider walking neighbor's escalation_ladder too.",
+    "is_exhausted check requires effectiveness_window consecutive sub-threshold deltas; a single highly-effective execution resets nothing — the list keeps growing (capped at 2*window). Consider clearing or down-weighting exhaustion flag once a positive delta is observed, otherwise an action stays effectively-marked even after recovery."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration12_adaptive_healing.py (new)"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "not tested"},
+  "test_credentials": "admin@freshcart.com / admin123 (not required for healing endpoints; they're public read-only).",
+  "seed_data_creation": "25 GET /api/products requests + 15s sleep so the 10s auto-heal loop fires at least once and populates HealingEngine.history with adaptive records.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Run `pytest /app/backend/tests/test_iteration12_adaptive_healing.py -v` for full regression. Tests are resilient to empty history (one auto-retry then pytest.skip on the eff/method/trigger checks). To validate the exhaustion transition end-to-end, you need to execute the same action_id at least 5 times in succession with low marginal SRI gain — easiest path is to call POST /api/healing/trigger {action_id: 'rate_limit'} 5x with ~5s gap then GET /api/healing/adaptation and assert rate_limit appears in exhausted_actions with is_exhausted=true. Iteration 11 tests still pass.",
+  "rca of the issue": "N/A — feature works as specified. Two minor reporting gaps identified (cooldown-vs-exhausted labelling, exhaustion-flag never resets on recovery) flagged as code-review feedback for E1, not blockers."
+}

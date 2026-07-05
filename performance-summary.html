@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FreshCart Performance Summary</title>
+  <style>
+    :root {
+      --bg: #f4f1ea;
+      --panel: #fffdf8;
+      --ink: #1e1f1b;
+      --muted: #666a61;
+      --line: #d8d1c4;
+      --good: #237a57;
+      --warn: #b7791f;
+      --bad: #b33a3a;
+      --accent: #224e3d;
+      --accent-2: #a96f2c;
+      --shadow: 0 12px 30px rgba(34, 28, 18, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      background:
+        radial-gradient(circle at top right, rgba(169,111,44,0.12), transparent 28%),
+        linear-gradient(180deg, #f8f5ef 0%, var(--bg) 100%);
+      color: var(--ink);
+    }
+
+    .wrap {
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: 32px 20px 56px;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, rgba(34,78,61,0.98), rgba(32,57,72,0.96));
+      color: #f7f3eb;
+      border-radius: 24px;
+      padding: 28px 28px 24px;
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      right: -80px;
+      top: -80px;
+      width: 240px;
+      height: 240px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.07);
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: 36px;
+      line-height: 1.1;
+      letter-spacing: 0.02em;
+    }
+
+    .subtitle {
+      margin: 0;
+      max-width: 780px;
+      color: rgba(247,243,235,0.88);
+      font-size: 16px;
+      line-height: 1.55;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .chip {
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.08);
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 13px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 18px;
+      margin-top: 22px;
+    }
+
+    .grid.kpis {
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+
+    .grid.two {
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: var(--shadow);
+    }
+
+    .card h2, .card h3 {
+      margin: 0 0 12px;
+      line-height: 1.2;
+    }
+
+    .label {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+    }
+
+    .metric {
+      font-size: 34px;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .delta {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .good { color: var(--good); }
+    .warn { color: var(--warn); }
+    .bad { color: var(--bad); }
+
+    .bar {
+      width: 100%;
+      height: 12px;
+      background: #ece5d8;
+      border-radius: 999px;
+      overflow: hidden;
+      margin: 10px 0 8px;
+      border: 1px solid #dfd5c4;
+    }
+
+    .bar > span {
+      display: block;
+      height: 100%;
+      border-radius: 999px;
+    }
+
+    .bar.good > span { background: linear-gradient(90deg, #2d8b63, #72b88c); }
+    .bar.warn > span { background: linear-gradient(90deg, #bf8a2f, #ddba68); }
+    .bar.bad > span { background: linear-gradient(90deg, #b33a3a, #e07a7a); }
+
+    .list {
+      margin: 0;
+      padding-left: 18px;
+      line-height: 1.55;
+      color: var(--ink);
+    }
+
+    .list li + li { margin-top: 8px; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .pill {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 5px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+
+    .pill.good { background: rgba(35,122,87,0.12); color: var(--good); }
+    .pill.warn { background: rgba(183,121,31,0.12); color: var(--warn); }
+    .pill.bad { background: rgba(179,58,58,0.12); color: var(--bad); }
+
+    .pill.neutral { background: rgba(34,78,61,0.08); color: var(--accent); }
+
+    .footnote {
+      margin-top: 20px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 720px) {
+      h1 { font-size: 28px; }
+      .metric { font-size: 28px; }
+      .card { padding: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <h1>FreshCart Performance and Auto-Healing Summary</h1>
+      <p class="subtitle">
+        This summary combines the aggregate load-test output from report.json with the current live healing and reliability endpoints.
+        It shows both the request-level performance posture and how the adaptive healing engine is behaving after the run.
+      </p>
+      <div class="meta">
+        <span class="chip">Target: http://localhost:8001</span>
+        <span class="chip">Requests: 3,324</span>
+        <span class="chip">Healing Mode: emergent_intelligence</span>
+        <span class="chip">Reliability Label: excellent</span>
+      </div>
+    </section>
+
+    <section class="grid kpis">
+      <article class="card">
+        <div class="label">Pass Rate</div>
+        <div class="metric bad">82.6%</div>
+        <div class="delta">2,746 passed / 578 failed. Failure rate is 17.4%, which is materially above a healthy production threshold.</div>
+      </article>
+      <article class="card">
+        <div class="label">Average Latency</div>
+        <div class="metric warn">1357ms</div>
+        <div class="delta">The average request time is high for a customer-facing grocery flow, especially under interactive browsing and checkout traffic.</div>
+      </article>
+      <article class="card">
+        <div class="label">Tail Latency</div>
+        <div class="metric warn">2573ms</div>
+        <div class="delta">P99 latency is 2.57 s. This is the most meaningful signal for visible customer slowdown under load.</div>
+      </article>
+      <article class="card">
+        <div class="label">Current Reliability Score</div>
+        <div class="metric good">0.9619</div>
+        <div class="delta">Live reliability is currently excellent despite the test failures, which suggests the system recovered after stress rather than maintaining low latency during it.</div>
+      </article>
+    </section>
+
+    <section class="grid two">
+      <article class="card">
+        <h2>Performance Breakdown</h2>
+        <div class="label">Latency Percentiles</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Metric</th>
+              <th>Value</th>
+              <th>Interpretation</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Average</td>
+              <td>1357ms</td>
+              <td>High for routine storefront interactions.</td>
+            </tr>
+            <tr>
+              <td>P50</td>
+              <td>1448ms</td>
+              <td>Even median requests are slow, so this is not just a tail problem.</td>
+            </tr>
+            <tr>
+              <td>P95</td>
+              <td>2153ms</td>
+              <td>Customers at the slow end are waiting over 2 seconds consistently.</td>
+            </tr>
+            <tr>
+              <td>P99</td>
+              <td>2573ms</td>
+              <td>Severe slowdown under pressure; visible impact on checkout confidence and conversion.</td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="card">
+        <h2>Reliability Components</h2>
+        <div class="label">Live Composite Inputs</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Component</th>
+              <th>Value</th>
+              <th>Weight</th>
+              <th>Contribution</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>SRI</td>
+              <td>0.9917</td>
+              <td>20%</td>
+              <td>0.1983</td>
+            </tr>
+            <tr>
+              <td>Apdex</td>
+              <td>0.9545</td>
+              <td>30%</td>
+              <td>0.2863</td>
+            </tr>
+            <tr>
+              <td>Availability</td>
+              <td>0.9915</td>
+              <td>25%</td>
+              <td>0.2479</td>
+            </tr>
+            <tr>
+              <td>Conversion Health</td>
+              <td>0.9171</td>
+              <td>25%</td>
+              <td>0.2293</td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+    </section>
+
+    <section class="grid two">
+      <article class="card">
+        <h2>Auto-Healing Status</h2>
+        <div class="label">Current Engine State</div>
+        <p>
+          <span class="pill good">Enabled</span>
+          <span class="pill neutral">alert_driven = true</span>
+          <span class="pill neutral">mode = emergent_intelligence</span>
+        </p>
+        <ul class="list">
+          <li>Total corrective actions executed: <strong>262</strong>.</li>
+          <li>Active healers now: <strong>4</strong> actions still in effect.</li>
+          <li>SRI dip tracking is active with a high watermark of <strong>0.9977</strong> and latest observed SRI of <strong>0.9951</strong>.</li>
+          <li>Live trend is <strong>stable</strong>, with predicted SRI of <strong>0.9895</strong> at 30s and <strong>0.9890</strong> at 60s.</li>
+          <li>Non-recoverable state detector is <strong>false</strong>, so the engine currently believes the system remains recoverable.</li>
+        </ul>
+      </article>
+
+      <article class="card">
+        <h2>Healing Interpretation</h2>
+        <div class="label">Operational Reading</div>
+        <div class="bar bad"><span style="width: 17.4%"></span></div>
+        <div class="delta">Load-test failure rate: 17.4%</div>
+        <div class="bar good"><span style="width: 96.19%"></span></div>
+        <div class="delta">Current reliability score: 96.19%</div>
+        <div class="bar good"><span style="width: 99.17%"></span></div>
+        <div class="delta">Current SRI: 99.17%</div>
+        <p class="footnote">
+          The strongest conclusion is that healing appears to be effective at restoring steady-state resilience after stress, but not strong enough to prevent significant request failures during the test window itself.
+          In other words: recovery looks good; in-test customer experience still looks weak.
+        </p>
+      </article>
+    </section>
+
+    <section class="grid two">
+      <article class="card">
+        <h2>Effective Actions</h2>
+        <div class="label">Actions Still Producing Positive Lift</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Action</th>
+              <th>Avg SRI Delta</th>
+              <th>Tracked Runs</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>scale_out_cache_node</td>
+              <td class="good">+0.003356</td>
+              <td>10</td>
+              <td><span class="pill good">effective</span></td>
+            </tr>
+            <tr>
+              <td>scale_out_db_read_replica</td>
+              <td class="good">+0.001051</td>
+              <td>2</td>
+              <td><span class="pill good">effective</span></td>
+            </tr>
+            <tr>
+              <td>queue_drain</td>
+              <td class="bad">-0.002162</td>
+              <td>10</td>
+              <td><span class="pill warn">mixed / volatile</span></td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="footnote">
+          The most credible positive pattern is capacity-based healing. Cache scale-out and DB read-replica scale-out are the clearest contributors to resilience recovery.
+        </p>
+      </article>
+
+      <article class="card">
+        <h2>Exhausted or Degraded Actions</h2>
+        <div class="label">Adaptive Selector Is Actively Pruning Low-Yield Moves</div>
+        <ul class="list">
+          <li><strong>11 actions</strong> are currently marked exhausted.</li>
+          <li>Examples with poor average SRI lift: <strong>connection_pool_reset</strong> (-0.000456), <strong>scale_out_frontend</strong> (-0.000206), <strong>scale_in_cache_node</strong> (-0.000244).</li>
+          <li>Even actions with small positive means like <strong>rate_limit</strong> and <strong>circuit_breaker</strong> are exhausted because their recent deltas are too small or inconsistent.</li>
+          <li>This is a positive sign for the learning loop: it is not blindly repeating every historical action.</li>
+        </ul>
+      </article>
+    </section>
+
+    <section class="grid two">
+      <article class="card">
+        <h2>Recent Healing Events</h2>
+        <div class="label">Most Meaningful Samples</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Action</th>
+              <th>Trigger</th>
+              <th>SRI Delta</th>
+              <th>Observation</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>queue_drain</td>
+              <td>emergent_steady</td>
+              <td class="good">+0.005621</td>
+              <td>Strong positive recovery when saturation reached 100% and dropped to 92.17% after action.</td>
+            </tr>
+            <tr>
+              <td>scale_out_db_read_replica</td>
+              <td>aggressive_mode</td>
+              <td class="good">+0.002926</td>
+              <td>Capacity expansion reduced DB saturation materially and improved SRI.</td>
+            </tr>
+            <tr>
+              <td>scale_out_cache_node</td>
+              <td>emergent_steady</td>
+              <td class="bad">-0.002610</td>
+              <td>Improved saturation locally, but overall SRI still moved the wrong way in that sample.</td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="card">
+        <h2>Assessment</h2>
+        <div class="label">What This Means For The App</div>
+        <ul class="list">
+          <li><strong>Customer experience during load is not acceptable yet.</strong> Median latency above 1.4s and a 17.4% failure rate are likely to damage conversion.</li>
+          <li><strong>Auto-healing is functioning.</strong> It is enabled, learning, pruning exhausted actions, and still finding a few capacity-driven actions that produce positive SRI lift.</li>
+          <li><strong>Auto-healing is not enough by itself.</strong> The system ends in an excellent live reliability state, but only after absorbing substantial request failures during the test.</li>
+          <li><strong>Best current lever:</strong> prioritize scale-out actions tied to Cache and DB, because those are the most consistently positive interventions in the live data.</li>
+        </ul>
+      </article>
+    </section>
+
+    <section class="card">
+      <h2>Recommended Next Actions</h2>
+      <div class="label">Performance and Healing Follow-up</div>
+      <ul class="list">
+        <li>Instrument the perf runner to store per-phase pass/fail and latency distributions in the JSON report so test-time degradation can be matched directly to healing activity.</li>
+        <li>Record healing snapshots during each ramp phase, not only after the run, so you can prove whether healing mitigates peak load or only improves post-load recovery.</li>
+        <li>Promote capacity-oriented actions earlier in the ladder for heavy ramp phases, especially cache and DB scale-out.</li>
+        <li>Investigate why high request failure persists while current reliability remains excellent; this usually indicates a mismatch between user-facing errors and back-end resilience scoring windows.</li>
+      </ul>
+      <p class="footnote">
+        Data sources used here: report.json plus live responses from /api/healing/status and /api/metrics/reliability at the time of generation.
+      </p>
+    </section>
+  </div>
+</body>
+</html>

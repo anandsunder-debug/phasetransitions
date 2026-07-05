@@ -1,0 +1,121 @@
+{
+  "theme_strategy": {
+    "primary_theme": "Light",
+    "domain": "E-Commerce (Groceries) & Admin (Observability Dashboard)",
+    "archetype_consumer": "Archetype 1: Organic & Earthy (Warm, tactile, trustworthy)",
+    "archetype_dashboard": "Archetype 4: Swiss & High-Contrast (Dark Mode variant for data-density and focus)"
+  },
+  "typography": {
+    "anti_default_rule_followed": true,
+    "fonts": {
+      "headings": "Outfit",
+      "body": "Manrope",
+      "data_and_code": "JetBrains Mono"
+    },
+    "hierarchy": {
+      "h1": "text-4xl sm:text-5xl lg:text-6xl tracking-tight leading-none",
+      "h2": "text-2xl sm:text-3xl lg:text-4xl tracking-tight leading-none",
+      "h3": "text-xl sm:text-2xl tracking-tight",
+      "h4": "text-lg sm:text-xl font-medium",
+      "body": "text-base leading-relaxed",
+      "small_labels": "text-xs uppercase tracking-[0.2em] font-semibold"
+    },
+    "pairing_strategy": "Soft Utility — Rounded Humanist Sans (Outfit) for friendly commerce, Clean Sans Body (Manrope)."
+  },
+  "color_palette": {
+    "ecommerce_light": {
+      "background": "#F9F8F6",
+      "foreground": "#1A1A1A",
+      "surface": "#FFFFFF",
+      "primary": "#2D5A27",
+      "primary_hover": "#1E4219",
+      "primary_foreground": "#FFFFFF",
+      "secondary": "#E47A53",
+      "secondary_foreground": "#FFFFFF",
+      "muted": "#EBE8E3",
+      "muted_foreground": "#6B6761",
+      "border": "#DCD7D0"
+    },
+    "dashboard_dark": {
+      "background": "#0A0A0A",
+      "foreground": "#F5F5F5",
+      "surface": "#121212",
+      "primary": "#FFFFFF",
+      "primary_foreground": "#0A0A0A",
+      "accent_healthy": "#00FF9D",
+      "accent_warning": "#FFCC00",
+      "accent_error": "#FF3B30",
+      "muted": "#1F1F1F",
+      "muted_foreground": "#8A8A8E",
+      "border": "#262626"
+    }
+  },
+  "layout_and_spacing": {
+    "spacing_scale": "p-1, p-2, p-4, p-6, p-8, p-12, p-16, p-24, p-32",
+    "ecommerce_grid": {
+      "mode": "MODE A: THE TETRIS GRID",
+      "gap": "gap-8 to gap-12",
+      "rules": "Asymmetry, Visual Tension. Use generous padding (p-8 to p-16). Containers with borders must have internal padding (p-8)."
+    },
+    "dashboard_grid": {
+      "mode": "MODE B: THE CONTROL ROOM GRID",
+      "gap": "gap-4 to gap-6",
+      "rules": "Density, Data Correlation. grid-cols-1 md:grid-cols-3 lg:grid-cols-4. Every pixel utilized, h-full on children."
+    },
+    "alignment": "Mobile-first grids. Left-align dense content and forms. Optical alignment for icons within buttons."
+  },
+  "surface_strategies": {
+    "ecommerce_header": "Crystal Glass: backdrop-blur-xl bg-[#F9F8F6]/70, 1px delicate inner stroke (border-white/40).",
+    "ecommerce_cards": "Flat Solid surfaces. Warm, organic feeling. Max 8px border-radius (rounded-md). Subtle shadow-sm on hover.",
+    "dashboard_panels": "Grid Borders (The Technical Look): border-collapse style layout. Sharp 1px borders (border-[#262626]), no soft shadows. Flat dark backgrounds."
+  },
+  "components_and_interactions": {
+    "forms_and_inputs": "Use Shadcn components heavily customized to match the Light Organic theme (rounded-md, earthy borders) or Dark Swiss theme.",
+    "buttons": "Hover states must explicitly set text color (e.g., hover:bg-[#1E4219] hover:text-white). No generic Tailwind transitions; use explicit properties.",
+    "charts": "Use Recharts or Shadcn Chart components for Spectral Resilience visualizations. Must be color-blind-friendly and use high-contrast dark theme accents.",
+    "motion": "Hover states on cards (-translate-y-1). Staggered fade-ins for product lists. Respect prefers-reduced-motion."
+  },
+  "icons": {
+    "library": "@phosphor-icons/react",
+    "style": "Duotone for E-Commerce, Regular/Bold for Dashboard metrics."
+  },
+  "media_and_assets": {
+    "image_constraints": "Images MUST NOT exceed 80vh on mobile. Max overlay opacity bg-black/40 with gradients, never flat blankets.",
+    "image_urls": {
+      "hero_background": {
+        "url": "https://images.unsplash.com/photo-1612362426802-dcc0ccd25f64?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzN8MHwxfHNlYXJjaHwxfHxmcmVzaCUyMG9yZ2FuaWMlMjB2ZWdldGFibGVzJTIwZmxhdGxheXxlbnwwfHx8fDE3NzUzNjg5NTB8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Top-down view of fresh organic vegetables and carrots. Use for the main e-commerce hero section.",
+        "category": "hero"
+      },
+      "product_1": {
+        "url": "https://images.pexels.com/photos/5202203/pexels-photo-5202203.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "description": "Vibrant mixed fresh vegetables, peppers and tomatoes.",
+        "category": "product"
+      },
+      "product_2": {
+        "url": "https://images.unsplash.com/photo-1553787434-45e1d245bfbb?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzN8MHwxfHNlYXJjaHw0fHxmcmVzaCUyMG9yZ2FuaWMlMjB2ZWdldGFibGVzJTIwZmxhdGxheXxlbnwwfHx8fDE3NzUzNjg5NTB8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Assorted vegetables on brown textile.",
+        "category": "product"
+      },
+      "product_3": {
+        "url": "https://images.pexels.com/photos/4020559/pexels-photo-4020559.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "description": "Fresh ripe vegetables and lemon placed on white smooth surface.",
+        "category": "product"
+      },
+      "cart_empty_state": {
+        "url": "https://images.unsplash.com/photo-1723857911632-b3563006f34a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NzB8MHwxfHNlYXJjaHwzfHxncm9jZXJ5JTIwc2hvcHBpbmclMjBjYXJ0JTIwZnJlc2glMjBwcm9kdWNlfGVufDB8fHx8MTc3NTM2ODk0OXww&ixlib=rb-4.1.0&q=85",
+        "description": "Baskets filled with different fruits and vegetables.",
+        "category": "background"
+      }
+    }
+  },
+  "instructions_to_main_agent": [
+    "Build two distinct visual experiences that route under one application: 1. The Grocery E-Commerce Store (Light Mode, Organic & Earthy). 2. The Spectral Resilience Admin Dashboard (Dark Mode, Swiss High-Contrast).",
+    "Install and use @phosphor-icons/react for all iconography.",
+    "Do NOT use 'Inter' font. Import and use 'Outfit' (Headings) and 'Manrope' (Body).",
+    "Ensure all interactive elements (buttons, inputs, links, cart actions) have a 'data-testid' attribute using kebab-case role-based naming.",
+    "For the E-Commerce side, implement a generous layout (p-8 to p-24) with soft flat cards. Avoid generic Bootstrap columns; use the Tetris Grid pattern.",
+    "For the Spectral Resilience Dashboard, build a highly dense, grid-border style dashboard utilizing the dark theme palette. Use Recharts for the Traffic, Latency, Error Rates, and Saturation (SRI) trend charts.",
+    "Implement Shadcn UI for structural interactive components (Modals, Selects) but strip Vercel-like styles to match our Organic or Technical archetypes respectively."
+  ]
+}

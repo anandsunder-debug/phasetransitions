@@ -1,0 +1,43 @@
+{
+  "summary": "Iteration 15 backend + frontend testing of (a) POST /api/healing/fault-propagation Laplacian diffusion, (b) Eq.7 non-recoverable detector in /api/healing/trend, (c) GET /api/healing/resilience-debt cumulative E(t)=∫Φdt + Cost∝1/SRI, (d) cascade_risk on FEA edges, plus the FEATopologyHeatMap chaos-mode click-to-inject UI, ResilienceDebtCard, and NonRecoverableBanner. 16/16 backend pytest cases pass: service-level fault propagation from API returns timeline len=16 (steps=15+initial) over mesh_size=5 with monotonically-sorted node_summary and source 'API' marked is_source; component-level fault from DB.orders returns mesh_size=19 with first_arrival_step=0 for source and ≤5 for direct fine-edge neighbors (DB.users, DB.metrics, DB.products, API.orders) — Backend.analytics arrives later than all four; invalid-input matrix (unknown source / bad granularity / steps=500 / fault_strength=2.0) all return 400; /healing/trend always emits non_recoverable + non_recoverable_criterion(plateau, plateau_eps, sustained_below_threshold, sri_threshold) even on insufficient_data branch; /healing/resilience-debt exposes the full required field set (energy_integral_phi, cost_total_usd, current_phi, current_sri, instantaneous_cost_per_sec, samples, cost_per_phi_sec, interpretation) and after ~30s of /api/products traffic both samples and cost_total_usd grow monotonically; every entry in fea?granularity=service edge_analysis and fea?granularity=component path_analysis includes cascade_risk in [0,1]; regression on schema/component-nested FEA/admin webhooks/auth/products all 200. Frontend Playwright run validates: admin login, System Health tab, fea-heatmap renders, ResilienceDebtCard mounts with cost='$3.58' (¢-prefixed), energy='3.9912', burn='$0.054/s'; NonRecoverableBanner correctly absent under healthy SRI=0.985 (component imported in DashboardPage but conditionally returns null); chaos toggle button label flips Chaos→Chaos: ON; clicking fea-node-API in chaos mode triggers exactly one POST /api/healing/fault-propagation, fea-propagation-summary panel renders containing 'API' source label, fea-propagation-scrubber visible; fea-clear-fault removes the summary panel; toggling chaos OFF and clicking the same node yields 0 POSTs; hovering an edge surfaces a 'Cascade risk: NN%' SVG tooltip (e.g. 35%).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Dashboard / System Health",
+        "issues": [
+          "Recharts width(-1)/height(-1) console warnings persist on initial mount (pre-existing, not introduced this iteration).",
+          "WebSocket /ws/alerts still fails through Kubernetes ingress (alerts UI works via REST polling)."
+        ]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration15_fault_propagation.py",
+    "/app/test_reports/pytest/iteration15_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py is now 4062 lines — long overdue for splitting. simulate_fault_propagation (~3040), ResilienceDebtAccumulator (~376), HealingEngine.analyze_topology, AlertManager, and the FastAPI route module should each move into their own files (backend/healing/propagation.py, backend/healing/resilience_debt.py, backend/healing/topology.py, backend/routes/healing.py).",
+    "simulate_fault_propagation hard-codes alpha=0.25 and rebuilds the Laplacian on every request. For granularity='component' the 19×19 matrix is cheap, but the diffusion params should be class attributes (or read from settings) and the Laplacian should be cached per granularity since TOPOLOGY_SCHEMA is static — currently every chaos click re-allocates numpy arrays.",
+    "x[idx[source]] = max(x[idx[source]], 0.5 * timeline[0]['x'][source]) (line 3111) re-clamps the source AFTER the diffusion step. Once x[source] equals 0.5*fault_strength it stays there indefinitely, so the snapshot at step=0 has x_source=fault_strength but every subsequent step caps at half — this is intentional ('keep the fault active for the whole window') but the comment doesn't explain the 0.5 factor; consider exposing it as `source_drive_ratio` for tunability and to make the Φ asymptote inspectable.",
+    "FaultPropagationRequest validates fault_strength via 0 < x ≤ 1 inside the handler (raise HTTPException). Use Pydantic Field(gt=0, le=1) and Field(ge=1, le=200) so FastAPI returns 422 with a structured error array instead of a plain 400 detail string — and the handler shrinks. (Tests assert 400 today; switching to 422 is a contract change worth coordinating with the frontend.)",
+    "ResilienceDebtCard.jsx silently swallows fetch errors (catch (e) { /* silent */ }). If the backend goes down the card is stuck on 'Loading resilience debt…' forever with no user feedback. Add an error state and a retry button.",
+    "FEATopologyHeatMap.jsx now does both onClick (chaos inject) and onDoubleClick (expand) on the same node group. Browsers fire onClick before the dblclick is detected, so on a real double-click in chaos mode the FIRST click already POSTs /healing/fault-propagation. Guard onClick with a setTimeout that the dblclick handler can cancel, or disable click-to-inject while a dblclick is pending.",
+    "NonRecoverableBanner polls /api/healing/trend every 5s but DashboardPage already polls trend elsewhere — duplicate polling. Hoist trend into a context/SWR key so all consumers share one fetch.",
+    "ResilienceDebtCard formats data.cost_total_usd.toFixed(2) without null-checking — if the backend ever returns null/undefined for current_phi or instantaneous_cost_per_sec the card crashes the whole tab. Default to 0 before .toFixed.",
+    "POST /api/healing/fault-propagation has no auth guard. Anyone with the URL can spam expensive 19-node simulations. Require authenticated session at minimum, or add a rate limiter (1 req/s per IP) since each call rebuilds the Laplacian and runs steps×n² multiplications."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration15_fault_propagation.py (new — 16 tests)"
+  ],
+  "success_rate": {"backend": "100% (16/16)", "frontend": "100% (8/8 critical UI assertions)"},
+  "test_credentials": "admin@freshcart.com / admin123 (source: /app/memory/test_credentials.md). Test user available via /api/auth/register if needed.",
+  "seed_data_creation": "None. test_cost_grows_with_traffic drives ~100 GET /api/products requests over 30s to advance the in-memory ResilienceDebtAccumulator; this is inherently transient and self-cleans.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Run `pytest /app/backend/tests/test_iteration15_fault_propagation.py -v` (~32s, includes the 30s traffic-burst test). For frontend smoke: login admin, click System Health, assert fea-heatmap + resilience-debt-card render, then toggle fea-chaos-toggle, click fea-node-API, expect a POST /api/healing/fault-propagation and fea-propagation-summary + fea-propagation-scrubber. The animation runs ~2.7s (30 frames × 90ms) so keep the propagation panel poll <2s after click. NonRecoverableBanner only appears when SRI<0.5 AND |dSRI/dt|<eps for sustained_below_threshold consecutive samples — to actually exercise that branch you need to inject sustained low-SRI samples into SRIInterpolator (no public endpoint today). All iteration_13 (FEA hierarchical) and iteration_14 (schema + webhooks) regressions still green.",
+  "rca of the issue": "N/A — all 13 spec items pass on first run. Backend math validated: Laplacian L=D-A is symmetric, x evolves via x ← x − dt·α·Lx with α=0.25, dt=0.5, source clamp ensures persistent driver, Φ=xᵀLx integrated as total_phi. Frontend integration verified via network capture (POST observed) + DOM inspection (data-testid presence + text content + SVG tooltip text). Cascade-risk computation in analyze_topology (server.py:3015) = norm_pressure × connection_strength / total_strength, clamped to [0,1] — confirmed in both edge_analysis (service granularity) and path_analysis (component granularity)."
+}

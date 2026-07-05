@@ -1,0 +1,44 @@
+{
+  "summary": "Iteration 14 backend + frontend testing of (a) GET /api/healing/topology/schema as the single source of truth for the FreshCart service mesh and (b) Slack/Discord webhook alerts on critical SRI events. 17/17 backend pytest cases pass — schema endpoint exposes services (5, exact names + positions API.x=300, Cache.x=110, DB.x=210, Queue.x=410, Backend.x=500), 5 inter_edges, components mapping (API:[auth,catalog,cart,checkout,orders]; Cache:[session,product,price]; DB:[users,products,orders,metrics]; Queue:[orders,healing,metrics]; Backend:[sri_engine,healing_engine,fea_engine,analytics]), 25 fine_edges referencing only known sub-components, version=1, no auth required. Admin endpoints: GET /api/admin/webhooks/status returns {configured:{slack,discord}, any_configured, cooldown_seconds, fires_on:'critical'} for admin; non-admin gets 403; unauth 401. POST /api/admin/webhooks/test returns 200 for admin and (with no webhooks configured) results.skipped==true & reason='no_webhook_configured'; non-admin 403. WebhookNotifier unit-tested against a loopback HTTPServer with SLACK_WEBHOOK_URL/DISCORD_WEBHOOK_URL env vars: critical alert hits both endpoints (Slack payload validates attachments[0].color=#FF3B30 + Category/Value/Threshold/Action fields; Discord embeds[0].color=0xFF3B30 + matching field names); a second dispatch with same id is skipped with reason='cooldown'; a warning alert is skipped with reason='not_critical'. Regression: /api/healing/fea?granularity=service still returns flat shape WITHOUT 'components' key on elements; granularity=component nests components; /api/healing/topology?granularity=fine returns 19 sub-component nodes (now sourced from TOPOLOGY_SCHEMA); /api/metrics/real, /api/auth/login, /api/products all 200. Frontend Playwright run validates admin login → System Health tab → fea-heatmap renders → 2 GET /api/healing/topology/schema network calls observed → SVG node cx/cy values extracted from DOM exactly match schema (API=300/80, Cache=110/200, DB=210/340, Queue=410/340, Backend=500/200), proving the frontend now consumes the schema (not hardcoded). Alerts tab → webhook-settings-card renders with webhook-slack-status and webhook-discord-status both showing 'Not set'; webhook-test-btn is disabled; clicking the disabled button triggers no POST; warning banner mentioning SLACK_WEBHOOK_URL/DISCORD_WEBHOOK_URL is visible.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Dashboard / System Health (and other tabs that render Recharts ResponsiveContainers)",
+        "issues": [
+          "Recharts emits repeated 'width(-1) and height(-1) of chart should be greater than 0' console warnings on initial dashboard mount. Pre-existing, not introduced by this iteration. Consider an explicit minHeight on chart wrappers.",
+          "WebSocket connection to wss://.../ws/alerts fails on dashboard mount (warning only; alerts UI still works via REST). Likely a Kubernetes ingress WS rewrite issue — track separately."
+        ]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration14_webhooks_schema.py",
+    "/app/test_reports/pytest/iteration14_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py is now ~3805 lines. WebhookNotifier (lines 809-915) and TOPOLOGY_SCHEMA (lines 765-805) should ideally live in their own modules (e.g., backend/notifications/webhook.py and backend/topology/schema.py) so the route handler stays thin and the notifier can be unit-tested without touching FastAPI.",
+    "WebhookNotifier reads env vars only in __init__ and the single module-level instance is created at import time (line 918). Changing SLACK_WEBHOOK_URL / DISCORD_WEBHOOK_URL via /etc/supervisor reload requires a backend restart — fine for prod, but document this in the warning banner ('restart backend to enable critical-alert delivery' is already shown — good).",
+    "AlertManager.check_and_alert dispatches via asyncio.create_task(webhook_notifier.dispatch(alert)) (line 736) without awaiting — task exceptions are swallowed by the event loop and won't surface in /api/admin/webhooks/status. Consider attaching an add_done_callback that logs failures, or recording last-delivery status on the notifier so the UI can show 'last critical sent at...'.",
+    "_can_send updates self._last_sent BEFORE the network call (line 833). If the webhook POST then fails (5xx, connection error), the cooldown is still consumed and the next alert within 120 s will be silently skipped despite the previous failure. Reset _last_sent[key] in the failure path so a transient outage doesn't suppress the next alert.",
+    "Both Slack & Discord payloads format value/threshold as f'{x:.4f}'. If alert.value is a string (e.g., 'N/A'), this raises TypeError inside dispatch — the create_task wrapper hides it. Guard with float coercion or a try/except around the format call.",
+    "GET /api/healing/topology/schema returns {version: 1} but doesn't set Cache-Control. Schema is effectively static — adding Cache-Control: public, max-age=300 would let the frontend skip the second redundant fetch we observed (2 GETs on tab open).",
+    "Frontend FEATopologyHeatMap.jsx still ships DEFAULT_NODE_POS / DEFAULT_EDGES fallbacks. Since the schema endpoint is unauthenticated and small, consider failing loudly (or showing a banner) when the fetch errors, instead of silently using stale defaults — otherwise a backend rename will look correct in dev but be wrong against an old frontend."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration14_webhooks_schema.py (new)"
+  ],
+  "success_rate": {"backend": "100% (17/17)", "frontend": "100%"},
+  "test_credentials": "admin@freshcart.com / admin123 ; test@freshcart.com / testpass123 (auto-registered if missing). Source: /app/memory/test_credentials.md.",
+  "seed_data_creation": "WebhookNotifier unit test uses a loopback HTTPServer on 127.0.0.1:<random> as Slack/Discord receiver; SLACK_WEBHOOK_URL/DISCORD_WEBHOOK_URL env vars are set then unset within the test scope so the rest of the suite runs against the live (un-configured) module-level webhook_notifier.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Run `pytest /app/backend/tests/test_iteration14_webhooks_schema.py -v` for full webhook + schema regression. Frontend smoke: login admin@freshcart.com/admin123, click Alerts → assert data-testid=webhook-settings-card + webhook-test-btn disabled when no env vars set. To exercise the live webhook delivery path end-to-end, set SLACK_WEBHOOK_URL (and/or DISCORD_WEBHOOK_URL) in /app/backend/.env and `sudo supervisorctl restart backend` — only then will GET /api/admin/webhooks/status return any_configured=true and the Send Test Alert button become clickable. The unit test (TestWebhookNotifierUnit) already validates payload shape, cooldown, and severity filter without touching any external service. All previous iteration_13 FEA hierarchical tests still pass alongside this run.",
+  "rca of the issue": "N/A — feature works as specified end-to-end. Spec items mapped 1:1 to passing tests: schema shape/version/auth (TestTopologySchema), exact services + positions (test_schema_services_exact), inter_edges (test_schema_inter_edges), components mapping (test_schema_components_mapping), 25 fine_edges referencing valid nodes (test_schema_fine_edges_count), admin/non-admin/unauth on both /admin/webhooks endpoints (TestWebhookEndpoints), webhook delivery + cooldown + severity filter against loopback server (TestWebhookNotifierUnit), regression on FEA service vs component shape and 19-node fine mesh + core endpoints (TestRegression). Frontend: schema network call observed twice on tab open and SVG cx/cy values exactly equal schema positions (proving consumption); webhook card rendered with all three required testids and disabled state correctly gates the POST."
+}

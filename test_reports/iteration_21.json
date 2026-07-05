@@ -1,0 +1,47 @@
+{
+  "summary": "Iteration 21 \u2014 Tier-3 endpoint granularity validation. Backend pytest 14/14 PASSED in 1.78s. Frontend FEA topology heatmap renders 6 services, expands to 46 components, and drills into 4 endpoint dots under API.auth via double-click; second double-click collapses tier-3. (1) GET /api/healing/topology/schema returns version=2, tier_counts={services:6, components:46, endpoints:101}, fine_edges=84 (from 26), endpoint_edges=139, inter_edges=8, with components/endpoints as service\u2192list dicts. (2) GET /api/healing/fea?granularity=service \u2192 6 elements (no regression). (3) /api/healing/fea?granularity=component \u2192 mesh_size_fine=46, 8\u20139 components per service, intra_edges populated, each component has [component, short_name, von_mises_stress, service_pressure, strain_energy, yield_exceeded, load, displacement, metrics]. (4) /api/healing/fea?granularity=endpoint \u2192 mesh_size_endpoint=101, each component carries endpoints[1\u20134] + endpoint_edges; endpoint objects have all required fields. (5) POST /api/healing/fault-propagation source='API.auth.login', granularity='endpoint', steps=10 \u2192 mesh_size=101, timeline of 11 entries, infected_count@step10=31 (>=20). (6) POST /api/healing/fault-propagation Frontend.page_load + component + steps=30 \u2192 mesh_size=46, 31 timeline entries. (7) POST /api/healing/auto-dampen-wave granularity='endpoint' \u2192 400 with explicit detail \"granularity must be 'service' or 'component'\" (spec accepts this; tier-3 dampen NOT yet supported). (8) Existing /api/metrics/real, /api/healing, /api/healing/topology, /api/cx/metrics all 200 OK. (9) FRONTEND: admin login OK; System Health tab loads heatmap with 6 fea-node-* selectors; Expand All produces 46 fea-component-* selectors; React-dispatched dblclick on fea-component-API.auth renders 4 fea-endpoint-* dots (API.auth.{login,register,me,logout}); second dblclick collapses to 0 endpoint dots. MESH GRANULARITY tile reads '46 components' as expected.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/healing/auto-dampen-wave", "issue": "granularity='endpoint' is rejected with 400 'granularity must be service or component'. Spec explicitly allowed this as acceptable. If tier-3 dampening is on the roadmap, add it; otherwise update the error message to mention 'endpoint not yet supported'."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {"flow": "Native Playwright dblclick on fea-component-* SVG <g>", "issue": "Playwright's element.dblclick(force=True) does NOT trigger React's onDoubleClick on the SVG <g> in some environments; dispatching a native MouseEvent('dblclick',{bubbles:true}) DOES work and drills in correctly. Real user mouse double-click works fine (E1 has self-tested visually). This is a Playwright-vs-React-SVG quirk, not a product bug \u2014 documenting for future test scripts.", "affected_selectors": ["[data-testid=\"fea-component-API.auth\"]"]},
+      {"flow": "Real-time WS /ws/alerts", "issue": "Carry-over from iteration 20: wss://<external>/ws/alerts handshake fails in preview ingress (browser console warning). Polling REST keeps panels populated; cosmetic.", "affected_selectors": ["wss://.../ws/alerts"]}
+    ],
+    "design_issues": [
+      {"screen": "Dashboard Overview / System Health", "issues": ["Recharts ResponsiveContainer 'width(-1) and height(-1)' warnings still emit ~10x on mount (carry-over from iter 20). Cosmetic; charts render correctly once size resolves."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration21_tier3_endpoint_topology.py",
+    "/app/test_reports/pytest/iteration21_results.xml"
+  ],
+  "action_items": [
+    "(Optional/feature) Implement tier-3 dampening in POST /api/healing/auto-dampen-wave OR refine the error message to explicitly say 'endpoint granularity not yet supported'.",
+    "(Doc/UX) The MESH GRANULARITY tile shows '46 components' both when only services are expanded AND when an endpoint drill-in is active. Consider showing 'N endpoints in M components' when at least one component is drilled in (granularity='endpoint'). Currently the tile does not surface the 101-endpoint tier-3 count to the user.",
+    "(Carry-over) Fix Recharts ResponsiveContainer parent sizing (minWidth/minHeight) to silence width(-1)/height(-1) warnings.",
+    "(Carry-over from iter 20) Configure production ingress to forward HTTP Upgrade headers for /ws/alerts."
+  ],
+  "critical_code_review_comments": [
+    "FEATopologyHeatMap.jsx:1013 \u2014 mesh-granularity tile branch only checks `hasExpanded` (services expanded). When granularity has actually transitioned to 'endpoint' (hasComponentExpanded true), it still prints '${fea.mesh_size_fine || 0} components'. Either branch on `hasComponentExpanded` first to print `${fea.mesh_size_endpoint} endpoints`, or rename label.",
+    "obs_server.py _build_endpoint_edges \u2014 called at import time; if endpoint list ever changes at runtime (e.g. dynamic registration), stale edges would persist. For now mesh is static so this is fine; document the assumption.",
+    "obs_server.py /api/healing/fea?granularity=endpoint \u2014 each component object now embeds endpoints[] + endpoint_edges[]. Response size grew significantly (101 endpoints \u00d7 ~11 fields). With the 5-second polling interval on the frontend, this is ~30 KB/poll/client. Acceptable for now; consider gzip middleware or lighter projection (`?fields=...`) at scale.",
+    "FEATopologyHeatMap.jsx endpoint rendering (lines 730-760) \u2014 uses ep.endpoint as key inside `.map()`. If endpoint names ever collide across components (e.g. two components both have 'list'), short_name collisions are handled by full endpoint id, but visually overlapping tooltips at the same screen coord could be confusing. Low priority.",
+    "FEATopologyHeatMap.jsx:130 \u2014 `granularity = hasComponentExpanded ? 'endpoint' : hasExpanded ? 'component' : 'service'`. If a user collapses every component drill-in but a service is still expanded, granularity correctly falls back to 'component'. Good. But if `expandedComponents` retains stale `true` entries after the parent service is collapsed (collapseAll clears both, but `toggleExpand` of a single parent doesn't), the FE will needlessly fetch endpoint-tier FEA for invisible components. Suggest pruning `expandedComponents` when its parent service collapses.",
+    "Tier-3 fault-propagation timeline (101 nodes \u00d7 11 steps) \u2014 response body for /api/healing/fault-propagation grew from ~3 KB to ~25 KB per call. POST is on-demand so it's fine; just note for ops dashboards."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration21_tier3_endpoint_topology.py (new \u2014 14 tests, all passing, ~1.8s)"
+  ],
+  "success_rate": {"backend": "100% (14/14 pytest)", "frontend": "100% (6 services, 46 components, tier-3 drill renders 4 endpoint dots on API.auth, collapse works, MESH GRANULARITY tile reads '46 components')"},
+  "test_credentials": "admin@freshcart.com / admin123 \u2014 verified working through main_app:8001 \u2192 obs:8002 proxy.",
+  "seed_data_creation": "None. All tests use existing endpoints and don't write any persistent state beyond fault-propagation simulation (in-memory).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Run `export $(grep -v ^# /app/frontend/.env | xargs) && pytest /app/backend/tests/test_iteration21_tier3_endpoint_topology.py -v` (~2s, 14 tests). REACT_APP_BACKEND_URL is required \u2014 the test fixtures hard-fail if it's missing. Key knowledge: (1) schema's `components` and `endpoints` keys are DICTS (service\u2192list of components, component\u2192list of endpoints), NOT flat lists; flatten with `sum(len(v) for v in d.values())`. (2) /api/healing/fea response uses `services` (NOT `elements`) and lacks top-level `mesh_size_service/fine/endpoint` for the 'service' granularity case \u2014 only `component`/`endpoint` granularity adds `mesh_size_fine`/`mesh_size_endpoint`. (3) Fault-prop timeline length is steps+1 (includes step 0). (4) auto-dampen-wave currently rejects granularity='endpoint' with 400; treat as expected for now. (5) For Playwright UI testing, DO NOT use page.dblclick() on the SVG <g> components \u2014 it doesn't always reach React's onDoubleClick. Use page.evaluate to dispatch native MouseEvent('dblclick',{bubbles:true}) instead. (6) Tier-3 drill testids: fea-endpoint-{Service.Component.endpoint_name}.",
+  "rca of the issue": "No product bugs found in this iteration. The only quirks worth noting: (a) MESH GRANULARITY tile label doesn't surface endpoint count when tier-3 is active (minor UX gap, not a bug \u2014 spec said tile should read '46 components'); (b) tier-3 dampen returns 400 (acceptable per spec); (c) Playwright dblclick on SVG <g> doesn't reach React in headless mode \u2014 testing-tool quirk, not a product issue (verified by dispatching native dblclick MouseEvent which correctly triggers drill-in and renders 4 fea-endpoint-* dots, screenshot saved at /tmp/fea_drill.png)."
+}

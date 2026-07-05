@@ -1,0 +1,145 @@
+{
+   "base_url" : "http://localhost:8001",
+   "corrected_payloads" : [
+      {
+         "corrected" : {
+            "body" : null,
+            "query" : {
+               "product_id" : "<product_id>",
+               "quantity" : 1
+            }
+         },
+         "endpoint" : "/api/orders/buy-now",
+         "failure_pattern" : "422/400 from sending JSON body instead of query params",
+         "method" : "POST"
+      },
+      {
+         "corrected" : {
+            "body" : {
+               "api_calls" : [
+                  {
+                     "duration_ms" : 420,
+                     "error" : false,
+                     "path" : "/api/orders",
+                     "status" : 200
+                  }
+               ],
+               "first_contentful_paint_ms" : 900,
+               "js_errors" : [],
+               "largest_contentful_paint_ms" : 1800,
+               "long_tasks_count" : 1,
+               "page" : "checkout",
+               "page_load_ms" : 1800,
+               "session_id" : "load_rx"
+            }
+         },
+         "endpoint" : "/api/rum/beacon",
+         "failure_pattern" : "422 from deprecated keys: fcp_ms/lcp_ms/long_tasks/js_errors:number",
+         "method" : "POST"
+      },
+      {
+         "corrected" : {
+            "body" : {
+               "dry_run" : false,
+               "max_steps" : 3,
+               "node" : "API"
+            }
+         },
+         "endpoint" : "/api/healing/path-to-stable/execute",
+         "failure_pattern" : "422 missing required node and wrong delay_seconds field",
+         "method" : "POST"
+      },
+      {
+         "corrected" : {
+            "body" : {
+               "action_id" : "queue_drain"
+            }
+         },
+         "endpoint" : "/api/healing/trigger",
+         "failure_pattern" : "422 when using node field; endpoint expects action_id",
+         "method" : "POST"
+      },
+      {
+         "corrected" : {
+            "body" : {
+               "fault_strength" : 0.6,
+               "granularity" : "service",
+               "source" : "API",
+               "steps" : 5
+            }
+         },
+         "endpoint" : "/api/healing/fault-propagation",
+         "failure_pattern" : "422 from source_node key mismatch",
+         "method" : "POST"
+      },
+      {
+         "corrected" : {
+            "body" : {
+               "auto_execute" : false,
+               "critical_arrival_threshold" : 0.3,
+               "fault_strength" : 0.7,
+               "granularity" : "service",
+               "source" : "API",
+               "steps" : 6
+            }
+         },
+         "endpoint" : "/api/healing/auto-dampen-wave",
+         "failure_pattern" : "422 missing required source",
+         "method" : "POST"
+      },
+      {
+         "corrected" : {
+            "body" : {
+               "granularity" : "service",
+               "source" : "API",
+               "stressed_nodes" : [
+                  {
+                     "node" : "API",
+                     "pressure" : 0.82,
+                     "yield_exceeded" : true
+                  },
+                  {
+                     "node" : "DB",
+                     "pressure" : 0.73,
+                     "yield_exceeded" : true
+                  }
+               ]
+            }
+         },
+         "endpoint" : "/api/healing/optimize-sequence",
+         "failure_pattern" : "422 from max_steps-only payload; requires stressed_nodes",
+         "method" : "POST"
+      },
+      {
+         "corrected" : {
+            "body" : {
+               "delay_ms" : 0,
+               "sequence" : [
+                  {
+                     "action_id" : "queue_drain",
+                     "target_node" : "API"
+                  }
+               ]
+            }
+         },
+         "endpoint" : "/api/healing/execute-sequence",
+         "failure_pattern" : "422 from using delay_seconds instead of delay_ms",
+         "method" : "POST"
+      },
+      {
+         "corrected" : {
+            "body" : {
+               "error_rate" : 0.12,
+               "failure_mode" : "Latency Spike",
+               "latency_scale" : 90,
+               "saturation" : 0.6,
+               "traffic_scale" : 1200
+            }
+         },
+         "endpoint" : "/api/metrics/simulate",
+         "failure_pattern" : "422 from unsupported scenario/duration_seconds fields",
+         "method" : "POST"
+      }
+   ],
+   "generated_at" : "Sat Jul  4 12:19:27 2026"
+}

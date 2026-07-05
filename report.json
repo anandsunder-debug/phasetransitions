@@ -1,0 +1,12 @@
+{
+  "base_url": "http://localhost:8001",
+  "total": 3324,
+  "passed": 2746,
+  "failed": 578,
+  "latency": {
+    "avg": "1357ms",
+    "p50": "1448ms",
+    "p95": "2153ms",
+    "p99": "2573ms"
+  }
+}
