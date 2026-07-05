@@ -477,7 +477,7 @@ async def root_health():
 _OBS_PROXY_PREFIXES = (
     "/metrics", "/healing", "/cx", "/rum",
     "/alerts", "/admin/webhooks", "/grafana",
-    "/phase", "/economic-reliability", "/stability",
+    "/phase", "/economic-reliability", "/stability", "/rst",
 )
 
 def _is_proxied_path(path: str) -> bool:

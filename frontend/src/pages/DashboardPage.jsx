@@ -36,6 +36,12 @@ import { EconomicReliabilityCard } from '../components/dashboard/EconomicReliabi
 import { StabilityFunctionalCard } from '../components/dashboard/StabilityFunctionalCard';
 import { PathToStableCard } from '../components/dashboard/PathToStableCard';
 import { CustomerExperiencePanel } from '../components/dashboard/CustomerExperiencePanel';
+import { RSTCompositionPanel } from '../components/dashboard/RSTCompositionPanel';
+import { StressStrainPanel } from '../components/dashboard/StressStrainPanel';
+import { StructuralTwinGraph } from '../components/dashboard/StructuralTwinGraph';
+import { SpectralResiliencePanel } from '../components/dashboard/SpectralResiliencePanel';
+import { PhysicalAnalogyView } from '../components/dashboard/PhysicalAnalogyView';
+import { ALL_NODES, SCENARIOS, computeNodeTensor, computeSpectral } from '../lib/rstSimulator';
 import { toast } from 'sonner';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -72,6 +78,10 @@ export default function DashboardPage() {
   const [healingHistory, setHealingHistory] = useState([]);
   const [healingLoading, setHealingLoading] = useState(false);
   const [reliability, setReliability] = useState(null);
+  const [rstState, setRstState] = useState(null);
+  const [rstHistory, setRstHistory] = useState([]);
+  const [rstScenario, setRstScenario] = useState('normal');
+  const [rstScenarioLoading, setRstScenarioLoading] = useState(false);
   
   const intervalRef = useRef(null);
   const wsRef = useRef(null);
@@ -173,13 +183,39 @@ export default function DashboardPage() {
 
   const fetchMetrics = useCallback(async () => {
     try {
-      const [metricsRes, reliabilityRes] = await Promise.all([
+      const [metricsRes, reliabilityRes, rstRes, rstHistRes] = await Promise.all([
         axios.get(`${API}/metrics/real`, { withCredentials: true }),
         axios.get(`${API}/metrics/reliability`, { withCredentials: true }).catch(() => ({ data: null })),
+        axios.get(`${API}/rst/state`, { withCredentials: true }).catch(() => ({ data: null })),
+        axios.get(`${API}/rst/history?limit=60`, { withCredentials: true }).catch(() => ({ data: null })),
       ]);
       const data = metricsRes.data;
       setMetrics(data);
       if (reliabilityRes.data) setReliability(reliabilityRes.data);
+      if (rstRes.data?.ready) {
+        setRstState(rstRes.data);
+        const liveScenario = SCENARIOS.find(sc => sc.name === rstRes.data.scenario);
+        if (liveScenario && liveScenario.id !== rstScenario) setRstScenario(liveScenario.id);
+        if (!rstRes.data.scenario && rstScenario !== 'normal') setRstScenario('normal');
+      } else if (data?.nodes?.length) {
+        const metricsByNode = Object.fromEntries(data.nodes.map(node => [node.id, node]));
+        const scenario = SCENARIOS.find(sc => sc.id === rstScenario);
+        const nodes = Object.fromEntries(ALL_NODES.map(node => [
+          node,
+          computeNodeTensor(node, metricsByNode[node] ?? {}, {}, scenario?.overrides?.[node] ?? {}),
+        ]));
+        const localSnap = {
+          ready: true,
+          ts: Date.now() / 1000,
+          nodes,
+          spectral: computeSpectral(nodes),
+          scenario: rstScenario === 'normal' ? null : scenario?.name,
+          source: 'browser_metrics_fallback',
+        };
+        setRstState(localSnap);
+        setRstHistory(prev => [...prev, localSnap].slice(-60));
+      }
+      if (rstHistRes.data?.samples?.length) setRstHistory(rstHistRes.data.samples);
       
       if (prevSri !== null) {
         setDeltaSri(data.sri - prevSri);
@@ -197,7 +233,7 @@ export default function DashboardPage() {
     } catch (e) {
       console.error('Failed to fetch metrics:', e);
     }
-  }, [prevSri]);
+  }, [prevSri, rstScenario]);
 
   useEffect(() => {
     if (isRunning) {
@@ -231,6 +267,29 @@ export default function DashboardPage() {
       await fetchMetrics();
     } finally {
       setLoading(false);
+    }
+  };
+
+  const applyRstScenario = async (scenarioId) => {
+    setRstScenario(scenarioId);
+    setRstScenarioLoading(true);
+    try {
+      const scenario = SCENARIOS.find(s => s.id === scenarioId);
+      if (!scenario) return;
+      if (scenarioId === 'normal') {
+        await axios.delete(`${API}/rst/scenario`, { withCredentials: true });
+      } else {
+        await axios.post(`${API}/rst/scenario`, {
+          name: scenario.name,
+          overrides: scenario.overrides,
+          duration_s: 60,
+        }, { withCredentials: true });
+      }
+      await fetchMetrics();
+    } catch (e) {
+      // Backend may not be connected; ignore silently
+    } finally {
+      setRstScenarioLoading(false);
     }
   };
 
@@ -503,6 +562,10 @@ export default function DashboardPage() {
               <TabsTrigger value="autoheal" className="data-[state=active]:bg-[#00A3FF] data-[state=active]:text-white">
                 <Shield className="w-4 h-4 mr-2" />
                 Auto-Heal
+              </TabsTrigger>
+              <TabsTrigger value="rst" className="data-[state=active]:bg-[#FF8C00] data-[state=active]:text-white">
+                <Zap className="w-4 h-4 mr-2" />
+                RST
               </TabsTrigger>
             </TabsList>
 
@@ -1588,6 +1651,69 @@ export default function DashboardPage() {
                   <p className="text-xs mt-1">Trigger actions manually or enable auto-healing</p>
                 </div>
               )}
+            </div>
+          </TabsContent>
+
+          {/* ==================== RST TAB ==================== */}
+          <TabsContent value="rst" className="space-y-6" data-testid="rst-tab">
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div>
+                <h2 className="text-lg font-bold text-white">Runtime Stiffness Tensor</h2>
+                <p className="text-xs text-[#8A8A8E] mt-1">
+                  Models each service as a structural element with a 6-component stiffness tensor K.
+                  Effective stiffness K_eff encodes resilience via Hooke's law: ε = σ / K_eff.
+                </p>
+              </div>
+
+              {/* Scenario selector */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs text-[#8A8A8E]">Scenario:</span>
+                {SCENARIOS.map(sc => (
+                  <button
+                    key={sc.id}
+                    onClick={() => applyRstScenario(sc.id)}
+                    disabled={rstScenarioLoading}
+                    className={`text-xs px-3 py-1.5 rounded font-medium transition-all ${
+                      rstScenario === sc.id
+                        ? 'bg-[#FF8C00] text-white'
+                        : 'bg-[#2A2A2A] text-[#8A8A8E] hover:bg-[#333] hover:text-white'
+                    }`}
+                    title={sc.description}
+                  >
+                    {sc.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Scenario description */}
+            {rstScenario !== 'normal' && (
+              <div className="bg-[#FF8C00]/10 border border-[#FF8C00]/30 rounded-lg p-3 text-xs text-[#FF8C00]">
+                <span className="font-bold">Active scenario: </span>
+                {SCENARIOS.find(s => s.id === rstScenario)?.description}
+                <span className="text-[#8A8A8E]"> · expires in 60 s · click "Normal operation" to clear</span>
+              </div>
+            )}
+
+            {/* Stiffness tensor composition heatmap */}
+            <RSTCompositionPanel nodes={rstState?.nodes ?? {}} />
+
+            {/* Stress / strain grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <StressStrainPanel
+                nodes={rstState?.nodes ?? {}}
+                history={rstHistory}
+              />
+              <SpectralResiliencePanel
+                spectral={rstState?.spectral ?? {}}
+                history={rstHistory}
+              />
+            </div>
+
+            {/* Structural twin graph + spring analogy */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <StructuralTwinGraph nodes={rstState?.nodes ?? {}} />
+              <PhysicalAnalogyView nodes={rstState?.nodes ?? {}} />
             </div>
           </TabsContent>
         </Tabs>
