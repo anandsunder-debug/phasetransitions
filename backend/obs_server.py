@@ -146,6 +146,8 @@ from obs.trackers import economic_reliability as econ_rel_mod
 from obs.trackers.economic_reliability import EconomicReliabilityTracker
 from obs.engines import stability_functional as stab_mod
 from obs.engines.stability_functional import StabilityFunctional
+from obs.engines import rst_engine as rst_mod
+from obs.engines.rst_engine import RSTEngine
 
 
 auto_propagation_detector = AutoPropagationDetector()
@@ -1421,6 +1423,45 @@ async def stability_state():
 @api_router.get("/stability/trend")
 async def stability_trend(limit: int = 60):
     return stability_functional.trend(limit=limit)
+
+
+# ==================== RUNTIME STIFFNESS TENSOR ====================
+# RST models each service as a structural element with a 6-component
+# stiffness tensor K = (K_A, K_H, K_S, K_D, K_F, K_R).
+# Effective stiffness: K_eff = geometric weighted mean of components.
+# Stress σ and Strain ε follow Hooke's analogy: ε = σ / K_eff.
+rst_engine_instance = RSTEngine()
+rst_mod.metrics_aggregator       = metrics_aggregator
+rst_mod.phase_classifier_instance = phase_classifier_instance
+rst_mod.healing_engine            = healing_engine
+
+
+class RSTScenarioRequest(BaseModel):
+    name: str
+    overrides: Dict[str, Any]
+    duration_s: float = 30.0
+
+
+@api_router.get("/rst/state")
+async def rst_state():
+    return rst_engine_instance.state()
+
+
+@api_router.get("/rst/history")
+async def rst_history(limit: int = 60):
+    return {"samples": rst_engine_instance.history_snapshot(limit=limit)}
+
+
+@api_router.post("/rst/scenario")
+async def rst_scenario(req: RSTScenarioRequest):
+    rst_engine_instance.apply_scenario(req.name, req.overrides, req.duration_s)
+    return {"ok": True, "name": req.name, "duration_s": req.duration_s}
+
+
+@api_router.delete("/rst/scenario")
+async def rst_scenario_clear():
+    rst_engine_instance.clear_scenario()
+    return {"ok": True}
 
 
 class LadderToggleRequest(BaseModel):
@@ -2812,6 +2853,7 @@ async def startup():
     asyncio.create_task(action_stagnation_mod.stagnation_guard_loop())
     asyncio.create_task(econ_rel_mod.economic_reliability_loop())
     asyncio.create_task(stab_mod.stability_functional_loop())
+    await rst_engine_instance.start()
 
 @app.on_event("shutdown")
 async def shutdown():
@@ -2842,6 +2884,7 @@ def _wire_extracted_modules() -> None:
     from obs.engines import action_stagnation as _action_stagnation
     from obs.trackers import economic_reliability as _econ_rel
     from obs.engines import stability_functional as _stab_func
+    from obs.engines import rst_engine as _rst_engine
     _names = (
         "metrics_aggregator", "sri_interpolator", "resilience_debt",
         "correlation_tracker", "auto_propagation_detector", "cx_tracker",
@@ -2858,7 +2901,7 @@ def _wire_extracted_modules() -> None:
         "resilience_debt_accumulator",
     )
     _g = globals()
-    for _mod in (_trackers_core, _engines_core, _ladder_synth, _phase_classifier, _rum_learner, _action_stagnation, _econ_rel, _stab_func):
+    for _mod in (_trackers_core, _engines_core, _ladder_synth, _phase_classifier, _rum_learner, _action_stagnation, _econ_rel, _stab_func, _rst_engine):
         for _n in _names:
             if _n in _g:
                 setattr(_mod, _n, _g[_n])
